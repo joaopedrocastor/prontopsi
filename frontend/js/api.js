@@ -65,6 +65,7 @@ export const api = {
 
   // system
   info: () => req("GET", "/api/system/info"),
+  checkUpdate: () => req("GET", "/api/system/check-update"),
   backup: (destDir) => req("POST", "/api/system/backup", { dest_dir: destDir }),
   restore: (srcFile) => req("POST", "/api/system/restore", { src_file: srcFile }),
   exportTo: (path, format) => req("POST", "/api/system/export-to", { path, format }),

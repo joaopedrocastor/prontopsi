@@ -15,7 +15,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from ..config import get_data_dir
+from ..config import APP_VERSION, get_data_dir
 from ..database import get_db
 from ..services import (
     anamnesis_service,
@@ -23,6 +23,7 @@ from ..services import (
     pdf_service,
     settings_service,
     transfer_service,
+    update_service,
 )
 from ..services.transfer_service import _slug
 
@@ -49,7 +50,13 @@ class SavePdfIn(BaseModel):
 
 @router.get("/info")
 def info() -> dict:
-    return {"data_dir": str(get_data_dir())}
+    return {"data_dir": str(get_data_dir()), "version": APP_VERSION}
+
+
+# Verifica no GitHub (repo prontopsi-releases) se há uma versão mais nova.
+@router.get("/check-update")
+def check_update() -> dict:
+    return update_service.check_update()
 
 
 # ---------- Backup ----------

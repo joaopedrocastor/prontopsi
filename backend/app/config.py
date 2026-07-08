@@ -13,6 +13,11 @@ from pathlib import Path
 
 APP_NAME = "AnamneseInfantil"
 
+# Versão atual do aplicativo (usada na checagem de atualizações).
+APP_VERSION = "1.0.0"
+# Repositório público onde ficam os instaladores/releases do ProntoPsi.
+RELEASES_REPO = "joaopedrocastor/prontopsi-releases"
+
 # Raiz do repositorio (…/anamnese)
 BASE_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = BASE_DIR / "frontend"

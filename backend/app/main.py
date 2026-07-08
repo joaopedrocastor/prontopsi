@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from .config import FRONTEND_DIR
+from .config import APP_VERSION, FRONTEND_DIR
 from .db_init import ensure_schema
 from .routers import anamnesis, appointments, google, meta, patients, settings, system
 
@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Anamnese Infantil", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title="ProntoPsi", version=APP_VERSION, lifespan=lifespan)
 
     # API
     app.include_router(meta.router)

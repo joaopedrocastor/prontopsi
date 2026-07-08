@@ -48,6 +48,15 @@ export async function escolherSalvar(sugestao, filtro) {
   return null;
 }
 
+// Abre uma URL no navegador do sistema (no desktop usa a ponte pywebview).
+export function openExternal(url) {
+  if (hasBridge() && window.pywebview.api.open_external) {
+    window.pywebview.api.open_external(url);
+  } else {
+    window.open(url, "_blank", "noopener");
+  }
+}
+
 // Baixa uma URL como arquivo (fallback do navegador).
 export function baixar(url, filename) {
   const a = document.createElement("a");

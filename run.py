@@ -10,6 +10,7 @@ import socket
 import sys
 import threading
 import time
+import webbrowser
 from pathlib import Path
 from urllib.request import urlopen
 
@@ -89,6 +90,14 @@ class Bridge:
         r = win.create_file_dialog(webview.SAVE_DIALOG, save_filename=suggestion or "",
                                    file_types=_file_types(filtro))
         return _first(r)
+
+    def open_external(self, url):
+        """Abre um link no navegador padrão do sistema (ex.: página de download)."""
+        try:
+            webbrowser.open(url)
+            return True
+        except Exception:
+            return False
 
 
 def main() -> None:

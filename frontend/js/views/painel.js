@@ -1,7 +1,7 @@
 // Painel inicial: saudação, atalhos, indicadores e alerta de próximas consultas.
 
 import { api } from "../api.js";
-import { store, isConfigured } from "../store.js";
+import { store, isConfigured, openExternal } from "../store.js";
 import { h, iniciais } from "../util.js";
 import { fazerBackup, restaurarBackup, exportarDados, importarDados } from "../systemActions.js";
 
@@ -24,6 +24,11 @@ function hora(startAt) { const d = new Date(startAt); return `${pad(d.getHours()
 // Monta o painel inicial: saudação, indicadores, próximas consultas e atalhos.
 export async function renderPainel(container) {
   const s = store.settings || {};
+
+  // Aviso de nova versão (aparece só se houver atualização no prontopsi-releases).
+  const updateSlot = h("div", {});
+  container.appendChild(updateSlot);
+  checkUpdate(updateSlot);
 
   container.appendChild(h("div", { class: "hello" }, [
     h("h1", {}, `Olá${s.professional_name ? ", " + s.professional_name.split(" ")[0] : ""}! 👋`),
@@ -120,6 +125,20 @@ async function loadUpcoming(body) {
       h("span", { class: "avatar" }, iniciais(nome)),
     ]));
   }
+}
+
+// Checa se há versão nova no GitHub e, se houver, mostra a faixa de download.
+async function checkUpdate(slot) {
+  let info;
+  try { info = await api.checkUpdate(); } catch { return; }
+  if (!info || !info.update_available) return;
+  slot.appendChild(h("div", { class: "notice", style: "margin-bottom:16px;background:#FFF3E6;border-color:#F0801A" }, [
+    h("div", { class: "notice-text" }, [
+      h("strong", { style: "color:var(--accent)" }, `Nova versão disponível (${info.latest}). `),
+      "Você está na " + info.current + ". Baixe a atualização para ter as novidades.",
+    ]),
+    h("button", { class: "btn-accent", onClick: () => openExternal(info.url) }, "⬇ Baixar atualização"),
+  ]));
 }
 
 function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
