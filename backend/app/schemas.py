@@ -93,6 +93,8 @@ class PatientIn(BaseModel):
     birth_date: str | None = None
     sex: str | None = None
     phones: str | None = None
+    email: str | None = None
+    status: str = "ativo"
     notes: str | None = None
 
 
@@ -104,11 +106,44 @@ class PatientOut(BaseModel):
     birth_date: str | None = None
     sex: str | None = None
     phones: str | None = None
+    email: str | None = None
+    status: str = "ativo"
     notes: str | None = None
     created_at: str
     updated_at: str
     age: str = ""
     anamneses_count: int = 0
+
+
+# ---------- Timeline de anotações ----------
+class NoteIn(BaseModel):
+    date: str | None = None
+    title: str | None = None
+    text: str = ""
+
+
+class NoteOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    patient_id: str
+    date: str
+    title: str | None = None
+    text: str
+    created_at: str
+    updated_at: str
+
+
+# ---------- Documentos ----------
+class DocumentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    patient_id: str
+    filename: str
+    size: int
+    mime: str | None = None
+    created_at: str
 
 
 # ---------- Anamnesis ----------

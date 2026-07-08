@@ -13,8 +13,8 @@ router = APIRouter(prefix="/api/appointments", tags=["appointments"])
 
 @router.get("", response_model=list[AppointmentOut])
 def list_appointments(start: str | None = None, end: str | None = None,
-                      db: Session = Depends(get_db)):
-    return appointments_service.list_appointments(db, start, end)
+                      patient_id: str | None = None, db: Session = Depends(get_db)):
+    return appointments_service.list_appointments(db, start, end, patient_id)
 
 
 @router.get("/upcoming", response_model=list[AppointmentOut])

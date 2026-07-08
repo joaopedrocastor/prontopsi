@@ -33,14 +33,31 @@ export const api = {
   resetConfirm: (code, new_password) => req("POST", "/api/settings/password/reset-confirm", { code, new_password }),
 
   // patients
-  listPatients: (search) => req("GET", "/api/patients" + (search ? `?search=${encodeURIComponent(search)}` : "")),
+  listPatients: (search, status) => {
+    const q = new URLSearchParams();
+    if (search) q.set("search", search);
+    if (status) q.set("status", status);
+    const qs = q.toString();
+    return req("GET", "/api/patients" + (qs ? `?${qs}` : ""));
+  },
   getPatient: (id) => req("GET", `/api/patients/${id}`),
   createPatient: (data) => req("POST", "/api/patients", data),
   updatePatient: (id, data) => req("PUT", `/api/patients/${id}`, data),
   deletePatient: (id) => req("DELETE", `/api/patients/${id}`),
 
+  // client timeline + documents
+  listNotes: (patientId) => req("GET", `/api/patients/${patientId}/notes`),
+  createNote: (patientId, data) => req("POST", `/api/patients/${patientId}/notes`, data),
+  updateNote: (id, data) => req("PATCH", `/api/notes/${id}`, data),
+  deleteNote: (id) => req("DELETE", `/api/notes/${id}`),
+  listDocuments: (patientId) => req("GET", `/api/patients/${patientId}/documents`),
+  uploadDocument: (patientId, file) => { const fd = new FormData(); fd.append("file", file); return req("POST", `/api/patients/${patientId}/documents`, fd, true); },
+  deleteDocument: (id) => req("DELETE", `/api/documents/${id}`),
+  docUrl: (id) => `/api/documents/${id}`,
+
   // anamneses
   listAnamneses: (patientId) => req("GET", "/api/anamneses" + (patientId ? `?patient_id=${patientId}` : "")),
+  listAppointmentsByPatient: (patientId) => req("GET", `/api/appointments?patient_id=${patientId}`),
   getAnamnesis: (id) => req("GET", `/api/anamneses/${id}`),
   createAnamnesis: (patientId, data = {}) => req("POST", "/api/anamneses", { patient_id: patientId, data }),
   updateAnamnesis: (id, patch) => req("PATCH", `/api/anamneses/${id}`, patch),

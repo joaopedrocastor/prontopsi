@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from ..config import get_assets_dir, get_data_dir
 from ..form_schema import FORM_VERSION
-from ..models import Anamnesis, Appointment, Patient, Settings
+from ..models import Anamnesis, Appointment, ClientNote, Patient, Settings
 from ..utils import now_iso
 from . import pdf_service, settings_service
 
@@ -28,6 +28,7 @@ def export_dict(db: Session) -> dict:
     patients = db.scalars(select(Patient).order_by(Patient.created_at)).all()
     anamneses = db.scalars(select(Anamnesis).order_by(Anamnesis.created_at)).all()
     appointments = db.scalars(select(Appointment).order_by(Appointment.created_at)).all()
+    notes = db.scalars(select(ClientNote).order_by(ClientNote.created_at)).all()
 
     return {
         "app": "AnamneseInfantil",
@@ -48,11 +49,21 @@ def export_dict(db: Session) -> dict:
                 "birth_date": p.birth_date,
                 "sex": p.sex,
                 "phones": p.phones,
+                "email": p.email,
+                "status": p.status,
                 "notes": p.notes,
                 "created_at": p.created_at,
                 "updated_at": p.updated_at,
             }
             for p in patients
+        ],
+        "client_notes": [
+            {
+                "id": n.id, "patient_id": n.patient_id, "date": n.date,
+                "title": n.title, "text": n.text,
+                "created_at": n.created_at, "updated_at": n.updated_at,
+            }
+            for n in notes
         ],
         "anamneses": [
             {
@@ -139,11 +150,24 @@ def import_dict(db: Session, payload: dict) -> dict:
         obj.birth_date = p.get("birth_date")
         obj.sex = p.get("sex")
         obj.phones = p.get("phones")
+        obj.email = p.get("email")
+        obj.status = p.get("status", "ativo")
         obj.notes = p.get("notes")
         if p.get("created_at"):
             obj.created_at = p["created_at"]
         db.merge(obj)
         stats["patients"] += 1
+
+    for n in payload.get("client_notes", []):
+        obj = db.get(ClientNote, n["id"]) or ClientNote(id=n["id"])
+        obj.patient_id = n["patient_id"]
+        obj.date = n.get("date")
+        obj.title = n.get("title")
+        obj.text = n.get("text", "")
+        if n.get("created_at"):
+            obj.created_at = n["created_at"]
+        db.merge(obj)
+        stats["client_notes"] = stats.get("client_notes", 0) + 1
 
     for a in payload.get("anamneses", []):
         obj = db.get(Anamnesis, a["id"]) or Anamnesis(id=a["id"])

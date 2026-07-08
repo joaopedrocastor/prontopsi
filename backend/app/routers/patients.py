@@ -12,8 +12,9 @@ router = APIRouter(prefix="/api/patients", tags=["patients"])
 
 
 @router.get("", response_model=list[PatientOut])
-def list_patients(search: str | None = None, db: Session = Depends(get_db)):
-    return patients_service.list_patients(db, search)
+def list_patients(search: str | None = None, status: str | None = None,
+                  db: Session = Depends(get_db)):
+    return patients_service.list_patients(db, search, status)
 
 
 @router.post("", response_model=PatientOut, status_code=201)

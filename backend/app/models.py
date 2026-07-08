@@ -65,6 +65,9 @@ class Patient(Base):
     birth_date: Mapped[str | None] = mapped_column(String(10), nullable=True)  # ISO 'YYYY-MM-DD'
     sex: Mapped[str | None] = mapped_column(String(1), nullable=True)  # 'F' | 'M'
     phones: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Situação do cliente: ativo | espera | alta | desativado | desistente
+    status: Mapped[str] = mapped_column(String(20), default="ativo")
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[str] = mapped_column(String(30), default=now_iso)
@@ -74,6 +77,14 @@ class Patient(Base):
         back_populates="patient",
         cascade="all, delete-orphan",
         order_by="Anamnesis.created_at.desc()",
+    )
+    client_notes: Mapped[list["ClientNote"]] = relationship(
+        back_populates="patient", cascade="all, delete-orphan",
+        order_by="ClientNote.date.desc()",
+    )
+    documents: Mapped[list["Document"]] = relationship(
+        back_populates="patient", cascade="all, delete-orphan",
+        order_by="Document.created_at.desc()",
     )
 
 
@@ -125,3 +136,38 @@ class Appointment(Base):
     updated_at: Mapped[str] = mapped_column(String(30), default=now_iso, onupdate=now_iso)
 
     patient: Mapped["Patient | None"] = relationship()
+
+
+class ClientNote(Base):
+    """Anotação da timeline do cliente (histórico clínico em ordem de data)."""
+
+    __tablename__ = "client_notes"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    patient_id: Mapped[str] = mapped_column(ForeignKey("patients.id", ondelete="CASCADE"))
+    date: Mapped[str] = mapped_column(String(10))  # ISO 'YYYY-MM-DD'
+    title: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    text: Mapped[str] = mapped_column(Text, default="")
+
+    created_at: Mapped[str] = mapped_column(String(30), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), default=now_iso, onupdate=now_iso)
+
+    patient: Mapped["Patient"] = relationship(back_populates="client_notes")
+
+
+class Document(Base):
+    """Documento anexado ao cliente. O arquivo fica em data/documents/."""
+
+    __tablename__ = "documents"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    patient_id: Mapped[str] = mapped_column(ForeignKey("patients.id", ondelete="CASCADE"))
+    filename: Mapped[str] = mapped_column(String(255))          # nome original
+    stored_path: Mapped[str] = mapped_column(String(400))       # relativo ao diretório de dados
+    size: Mapped[int] = mapped_column(Integer, default=0)
+    mime: Mapped[str | None] = mapped_column(String(120), nullable=True)
+
+    created_at: Mapped[str] = mapped_column(String(30), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), default=now_iso, onupdate=now_iso)
+
+    patient: Mapped["Patient"] = relationship(back_populates="documents")

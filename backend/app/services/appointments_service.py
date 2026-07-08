@@ -45,8 +45,9 @@ def _to_dict(a: Appointment, patient_name: str | None = None) -> dict:
     }
 
 
-def list_appointments(db: Session, start: str | None = None, end: str | None = None) -> list[dict]:
-    """Lista agendamentos, opcionalmente no intervalo [start, end) (ISO local)."""
+def list_appointments(db: Session, start: str | None = None, end: str | None = None,
+                      patient_id: str | None = None) -> list[dict]:
+    """Lista agendamentos, opcionalmente no intervalo [start, end) e por paciente."""
     stmt = select(Appointment, Patient.name).join(
         Patient, Appointment.patient_id == Patient.id, isouter=True
     )
@@ -54,6 +55,8 @@ def list_appointments(db: Session, start: str | None = None, end: str | None = N
         stmt = stmt.where(Appointment.start_at >= start)
     if end:
         stmt = stmt.where(Appointment.start_at < end)
+    if patient_id:
+        stmt = stmt.where(Appointment.patient_id == patient_id)
     stmt = stmt.order_by(Appointment.start_at.asc())
     return [_to_dict(a, name or "") for a, name in db.execute(stmt).all()]
 

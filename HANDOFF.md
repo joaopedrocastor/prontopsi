@@ -107,11 +107,16 @@ Migrações Alembic aplicadas em ordem no primeiro boot:
 - **0002** — `settings.logo_includes_info`
 - **0003** — tabela `appointments` (agenda) + colunas de recuperação de senha
 - **0004** — colunas de config do Google
+- **0005** — `patients.email` + `patients.status`; tabelas `client_notes`
+  (timeline) e `documents`
 
 Tabelas:
 - **settings** (linha única): identidade (logo/nome/CRP), senha (hash),
   recuperação (email + SMTP), Google (client_id/secret/calendar/timezone).
-- **patients**: nome, nascimento, sexo, telefones, observações.
+- **patients**: nome, nascimento, sexo, telefones, **email**, **status**
+  (ativo/espera/alta/desativado/desistente), observações.
+- **client_notes**: timeline de anotações do cliente (data, título, texto).
+- **documents**: anexos do cliente (arquivo em `data/documents/`, caminho no banco).
 - **anamneses**: `form_version`, `status` (rascunho/concluida), `data` (JSON com
   os campos da ficha).
 - **appointments**: paciente (opcional), início/fim, status, modalidade, cor,
@@ -128,7 +133,10 @@ Tabelas:
   versão (checagem no GitHub).
 - **Agenda**: visões Mês/Semana/Dia, criar/editar/excluir sessão, eventos
   coloridos, sobreposição lado a lado, eventos avulsos (sem paciente).
-- **Pacientes**: cadastro/busca, idade automática, detalhe com fichas.
+- **Clientes**: listagem em **tabela** (nome/status/email/telefone/data + filtro
+  por status + busca). **Ficha de Cliente** com sub-menu: Principal (resumo +
+  **timeline de anotações**), Cadastro, Anamnese, Sessões realizadas, Documentos
+  (upload/download), Financeiro (em breve).
 - **Ficha de Anamnese**: navegação por seções, **salvamento automático** (salva
   ao fechar também), aviso não bloqueante de campos vazios, status, duplicar.
 - **PDF** fiel ao papel (cabeçalho com logo + selo, pílulas de seção terracota,
@@ -145,7 +153,9 @@ Tabelas:
 
 - [ ] **Financeiro** (pagamento de sessões, receita) — próximo módulo pedido.
 - [ ] **Relatórios** com gráficos/tabelas (clientes, sessões, financeiro).
-- [ ] **Timeline de anotações** por paciente.
+- [ ] **Export/import de documentos** (arquivos): hoje o JSON leva pacientes,
+      fichas, agenda e **anotações da timeline**; os arquivos de `documents/`
+      ainda não entram no export.
 - [ ] **Testar o OAuth do Google ponta a ponta** na máquina real (o backend está
       pronto; falta validar o fluxo do navegador com credenciais reais).
 - [ ] (Opcional) **Assinar o .exe** para evitar o aviso do SmartScreen.

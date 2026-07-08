@@ -15,11 +15,14 @@ def _normaliza_sexo(sex: str | None) -> str | None:
     return s if s in ("F", "M") else None
 
 
-def list_patients(db: Session, search: str | None = None) -> list[dict]:
+def list_patients(db: Session, search: str | None = None,
+                  status: str | None = None) -> list[dict]:
     stmt = select(Patient)
     if search:
         like = f"%{search.strip()}%"
-        stmt = stmt.where(or_(Patient.name.ilike(like)))
+        stmt = stmt.where(or_(Patient.name.ilike(like), Patient.email.ilike(like)))
+    if status and status != "todos":
+        stmt = stmt.where(Patient.status == status)
     stmt = stmt.order_by(Patient.name.asc())
     patients = db.scalars(stmt).all()
 
@@ -52,6 +55,8 @@ def create_patient(db: Session, data: dict) -> Patient:
         birth_date=(data.get("birth_date") or None),
         sex=_normaliza_sexo(data.get("sex")),
         phones=(data.get("phones") or None),
+        email=(data.get("email") or None),
+        status=(data.get("status") or "ativo"),
         notes=(data.get("notes") or None),
     )
     db.add(patient)
@@ -68,6 +73,8 @@ def update_patient(db: Session, patient_id: str, data: dict) -> Patient | None:
     patient.birth_date = data.get("birth_date") or None
     patient.sex = _normaliza_sexo(data.get("sex"))
     patient.phones = data.get("phones") or None
+    patient.email = data.get("email") or None
+    patient.status = data.get("status") or "ativo"
     patient.notes = data.get("notes") or None
     db.commit()
     db.refresh(patient)
@@ -90,6 +97,8 @@ def _to_dict(p: Patient, anamneses_count: int) -> dict:
         "birth_date": p.birth_date,
         "sex": p.sex,
         "phones": p.phones,
+        "email": p.email,
+        "status": p.status or "ativo",
         "notes": p.notes,
         "created_at": p.created_at,
         "updated_at": p.updated_at,
