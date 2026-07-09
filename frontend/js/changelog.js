@@ -1,0 +1,41 @@
+// Histórico de novidades por versão (mostrado ao reabrir após atualizar).
+// Ao lançar uma versão nova, adicione a lista de mudanças aqui.
+
+export const CHANGELOG = {
+  "1.1.0": [
+    "Listagem de clientes em tabela (status, e-mail, telefone, data de cadastro) com filtro e busca.",
+    "Ficha de Cliente completa: Principal, Cadastro, Anamnese, Sessões realizadas e Documentos.",
+    "Timeline de anotações do cliente.",
+    "Anexar, baixar e excluir documentos por cliente.",
+  ],
+  "1.0.0": [
+    "Primeira versão do ProntoPsi.",
+    "Pacientes, Agenda (mês/semana/dia) e Ficha de Anamnese com PDF.",
+    "Backup, exportação de dados e verificação de atualizações.",
+  ],
+};
+
+// Converte 'v1.2.3' / '1.2.3' em números comparáveis.
+function parseV(v) {
+  return String(v || "").replace(/^v/, "").split(".").map((n) => parseInt(n, 10) || 0);
+}
+function cmp(a, b) {
+  const A = parseV(a), B = parseV(b);
+  for (let i = 0; i < Math.max(A.length, B.length); i++) {
+    if ((A[i] || 0) !== (B[i] || 0)) return (A[i] || 0) - (B[i] || 0);
+  }
+  return 0;
+}
+
+// Junta as novidades de todas as versões entre 'fromVersion' (exclusivo) e
+// 'toVersion' (inclusivo) — cobre também quem pulou várias versões.
+export function novidadesEntre(fromVersion, toVersion) {
+  const out = [];
+  for (const [ver, itens] of Object.entries(CHANGELOG)) {
+    if (cmp(ver, fromVersion) > 0 && cmp(ver, toVersion) <= 0) {
+      out.push({ version: ver, items: itens });
+    }
+  }
+  out.sort((a, b) => cmp(b.version, a.version)); // mais nova primeiro
+  return out;
+}

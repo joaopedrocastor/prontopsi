@@ -3,8 +3,9 @@
 
 import { api } from "./api.js";
 import { store, loadSettings } from "./store.js";
-import { toast } from "./util.js";
+import { toast, modal, h } from "./util.js";
 import { logoHorizontal, logoStacked } from "./logo.js";
+import { novidadesEntre } from "./changelog.js";
 
 import { renderPainel } from "./views/painel.js";
 import { renderSettings } from "./views/settings.js";
@@ -113,6 +114,26 @@ function startApp() {
   refreshHeader();
   window.addEventListener("hashchange", router);
   router();
+  mostrarNovidades();
+}
+
+// Após atualizar, mostra "Novidades da versão" uma vez (compara versão vista).
+async function mostrarNovidades() {
+  let version;
+  try { version = (await api.info()).version; } catch { return; }
+  const seen = localStorage.getItem("seenVersion");
+  localStorage.setItem("seenVersion", version);
+  if (!seen || seen === version) return;  // 1ª execução ou mesma versão: não mostra
+  const novidades = novidadesEntre(seen, version);
+  if (!novidades.length) return;
+  modal({
+    title: `🎉 Novidades da versão ${version}`,
+    content: h("div", {}, novidades.map((n) => h("div", { style: "margin-bottom:12px" }, [
+      novidades.length > 1 ? h("strong", { style: "color:var(--primary)" }, "Versão " + n.version) : null,
+      h("ul", { style: "margin:6px 0 0;padding-left:20px" }, n.items.map((it) => h("li", { style: "margin:4px 0" }, it))),
+    ]))),
+    actions: [{ label: "Entendi", class: "btn" }],
+  });
 }
 
 // ---- Tela de senha + recuperacao ----
