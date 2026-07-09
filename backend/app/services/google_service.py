@@ -16,12 +16,15 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import get_data_dir
 from ..models import Appointment, Settings
+from ..utils import new_uuid, now_iso
 from .settings_service import get_settings
 
 logger = logging.getLogger("anamnese")
@@ -151,3 +154,77 @@ def delete_event(db: Session, google_event_id: str | None) -> None:
         service.events().delete(calendarId=cal, eventId=google_event_id).execute()
     except Exception as exc:  # best-effort
         logger.warning("Falha ao remover evento do Google: %s", exc)
+
+
+def _wallclock(dt_str: str) -> str | None:
+    """RFC3339 do Google -> 'YYYY-MM-DDTHH:MM' (horário local do evento).
+
+    O Google já formata a data no fuso do evento (ex.: ...T10:00:00-03:00),
+    então os 16 primeiros caracteres são exatamente o horário de parede.
+    """
+    if not dt_str or "T" not in dt_str:
+        return None  # evento de dia inteiro (só 'date') — ignorado
+    return dt_str[:16]
+
+
+def pull_events(db: Session, days_back: int = 30, days_forward: int = 180) -> dict:
+    """Traz os eventos do Google para a agenda do app (Google -> app).
+
+    Casa pelo google_event_id (não duplica): cria os novos e atualiza os
+    existentes. Por segurança, NÃO apaga agendamentos do app. Eventos de dia
+    inteiro e cancelados são ignorados.
+    """
+    settings = get_settings(db)
+    if not is_configured(settings):
+        raise ValueError("Configure o Google primeiro.")
+    service = _service(settings)
+    if not service:
+        raise ValueError("Conte a conta do Google (Conectar) antes de sincronizar.")
+
+    cal = settings.google_calendar_id or "primary"
+    now = datetime.now(timezone.utc)
+    time_min = (now - timedelta(days=days_back)).isoformat()
+    time_max = (now + timedelta(days=days_forward)).isoformat()
+
+    stats = {"created": 0, "updated": 0, "skipped": 0}
+    page_token = None
+    while True:
+        resp = service.events().list(
+            calendarId=cal, timeMin=time_min, timeMax=time_max,
+            singleEvents=True, orderBy="startTime", maxResults=250,
+            pageToken=page_token,
+        ).execute()
+        for ev in resp.get("items", []):
+            if ev.get("status") == "cancelled":
+                stats["skipped"] += 1
+                continue
+            start = _wallclock((ev.get("start") or {}).get("dateTime"))
+            end = _wallclock((ev.get("end") or {}).get("dateTime")) or start
+            if not start:
+                stats["skipped"] += 1  # dia inteiro / sem horário
+                continue
+            gid = ev.get("id")
+            title = ev.get("summary") or "Evento (Google)"
+            notes = ev.get("description") or None
+
+            existing = db.scalar(select(Appointment).where(Appointment.google_event_id == gid))
+            if existing:
+                existing.title = title
+                existing.start_at = start
+                existing.end_at = end
+                if notes is not None:
+                    existing.notes = notes
+                stats["updated"] += 1
+            else:
+                db.add(Appointment(
+                    id=new_uuid(), patient_id=None, title=title,
+                    start_at=start, end_at=end, status="agendada",
+                    notes=notes, google_event_id=gid,
+                    created_at=now_iso(), updated_at=now_iso(),
+                ))
+                stats["created"] += 1
+        db.commit()
+        page_token = resp.get("nextPageToken")
+        if not page_token:
+            break
+    return stats

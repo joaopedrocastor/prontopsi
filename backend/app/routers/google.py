@@ -51,3 +51,14 @@ def connect(db: Session = Depends(get_db)) -> dict:
 def disconnect(db: Session = Depends(get_db)) -> dict:
     google_service.disconnect()
     return google_service.status(db)
+
+
+@router.post("/sync")
+def sync(db: Session = Depends(get_db)) -> dict:
+    """Traz para o app os eventos criados/alterados no Google (Google -> app)."""
+    try:
+        return google_service.pull_events(db)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # falha de rede/API
+        raise HTTPException(status_code=400, detail=f"Falha ao sincronizar: {exc}") from exc

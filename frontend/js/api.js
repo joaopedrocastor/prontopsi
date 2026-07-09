@@ -79,6 +79,7 @@ export const api = {
   googleSaveConfig: (data) => req("PUT", "/api/google/config", data),
   googleConnect: () => req("POST", "/api/google/connect"),
   googleDisconnect: () => req("POST", "/api/google/disconnect"),
+  googleSync: () => req("POST", "/api/google/sync"),
 
   // system
   info: () => req("GET", "/api/system/info"),

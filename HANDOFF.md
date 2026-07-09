@@ -249,6 +249,11 @@ Backend pronto (`google_service.py`). Para funcionar, a usuária precisa:
    **Salvar** → **Conectar** (abre o navegador).
 - Token salvo em `google_token.json` no diretório de dados.
 - Sincronização é *best-effort*: sem conexão, a agenda local funciona igual.
+- **Mão dupla:** app→Google (push automático ao criar/editar/excluir) e
+  Google→app (pull via `POST /api/google/sync` — `pull_events` em
+  `google_service.py`). A Agenda sincroniza ao abrir (se conectada) e tem botão
+  "🔄 Sincronizar Google". Por segurança, o pull **não apaga** agendamentos do
+  app; ignora eventos de dia inteiro e cancelados; casa por `google_event_id`.
 
 ---
 

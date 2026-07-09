@@ -33,6 +33,7 @@ async function getPatients() { if (!patientsCache) patientsCache = await api.lis
 // Tela da Agenda: barra de controle (navegar/trocar visão/agendar) + o calendário.
 export async function renderAgenda(container) {
   const state = { mode: localStorage.getItem("agendaMode") || "semana", ref: new Date() };
+  let googleConnected = false;
 
   const toolbar = h("div", { class: "cal-toolbar" });
   const body = h("div", {});
@@ -60,6 +61,9 @@ export async function renderAgenda(container) {
     toolbar.appendChild(h("div", { class: "seg" }, [
       segBtn("Mês", "mes", state, setMode), segBtn("Semana", "semana", state, setMode), segBtn("Dia", "dia", state, setMode),
     ]));
+    if (googleConnected) {
+      toolbar.appendChild(h("button", { class: "btn-outline", title: "Trazer eventos do Google", onClick: () => sincronizarGoogle(true) }, "🔄 Sincronizar Google"));
+    }
     toolbar.appendChild(h("button", { class: "btn", onClick: () => openEditor(null, defaultStart(state), render) }, "＋ Agendar sessão"));
 
     clear(body);
@@ -74,7 +78,19 @@ export async function renderAgenda(container) {
     else body.appendChild(renderTimeGrid(state, appts, render));
   }
 
+  // Puxa os eventos do Google para o app (Google -> app). manual=true mostra avisos.
+  async function sincronizarGoogle(manual) {
+    try {
+      const r = await api.googleSync();
+      if (manual) toast(`Sincronizado: ${r.created} novo(s), ${r.updated} atualizado(s).`, "ok");
+      await render();
+    } catch (e) { if (manual) toast(e.message, "err"); }
+  }
+
+  // Descobre se o Google está conectado; se sim, sincroniza automaticamente ao abrir.
+  try { googleConnected = (await api.googleStatus()).connected; } catch { googleConnected = false; }
   await render();
+  if (googleConnected) sincronizarGoogle(false);
 }
 
 function segBtn(label, mode, state, setMode) {
