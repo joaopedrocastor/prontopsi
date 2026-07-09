@@ -26,6 +26,13 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(title="ProntoPsi", version=APP_VERSION, lifespan=lifespan)
 
+    # Evita que o WebView guarde HTML/JS/CSS antigos após uma atualização do app.
+    @app.middleware("http")
+    async def no_cache(request, call_next):
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+
     # API
     app.include_router(meta.router)
     app.include_router(settings.router)

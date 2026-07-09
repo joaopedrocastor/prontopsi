@@ -10,9 +10,12 @@ export async function loadSettings() {
   return store.settings;
 }
 
+// Consultório está configurado se tiver nome+CRP OU uma logo que já inclui esses dados.
 export function isConfigured() {
   const s = store.settings;
-  return !!(s && s.professional_name && s.crp);
+  if (!s) return false;
+  if (s.logo_path && s.logo_includes_info) return true;
+  return !!(s.professional_name && s.crp);
 }
 
 // ---- Ponte pywebview ----
