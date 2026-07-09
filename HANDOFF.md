@@ -2,7 +2,22 @@
 
 Documento de continuidade do projeto. Objetivo: qualquer pessoa (ou uma nova
 sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
-2026-07-08.
+2026-07-08. **Versão atual: 1.1.0.**
+
+## Histórico de versões
+- **1.0.0** — base: pacientes, agenda, ficha de anamnese + PDF, backup,
+  configuração (logo/nome/CRP + senha com recuperação por e-mail), integração
+  Google Agenda, verificação de atualização. Release publicada.
+- **1.1.0** — módulo Clientes evoluído (tabela + Ficha de Cliente com sub-menu +
+  timeline de anotações + documentos); "Novidades da versão" ao reabrir após
+  atualizar (`frontend/js/changelog.js`); `Cache-Control: no-cache` no servidor
+  (não servir JS/HTML antigos após update); correção do aviso "Configure
+  consultório" (agora some quando a logo já inclui nome/CRP). Release publicada.
+
+> **Cache e porta:** o app sobe em **porta aleatória** a cada abertura, então o
+> WebView sempre carrega JS/CSS frescos (sem cache velho após atualizar). No
+> preview local a porta é fixa (8799), por isso lá o cache atrapalha — no app
+> real não. O header `no-cache` reforça isso.
 
 ---
 
