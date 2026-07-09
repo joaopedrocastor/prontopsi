@@ -2,6 +2,10 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.1.1": [
+    "Correção: o aviso “Configure seu consultório” some quando a logo já inclui nome e CRP.",
+    "Melhoria: a tela sempre carrega atualizada após uma atualização (sem sobras da versão anterior).",
+  ],
   "1.1.0": [
     "Listagem de clientes em tabela (status, e-mail, telefone, data de cadastro) com filtro e busca.",
     "Ficha de Cliente completa: Principal, Cadastro, Anamnese, Sessões realizadas e Documentos.",
