@@ -82,7 +82,13 @@ export async function renderAgenda(container) {
   async function sincronizarGoogle(manual) {
     try {
       const r = await api.googleSync();
-      if (manual) toast(`Sincronizado: ${r.created} novo(s), ${r.updated} atualizado(s).`, "ok");
+      const trouxe = (r.created || 0) + (r.updated || 0);
+      if (manual) {
+        if (trouxe > 0) toast(`Sincronizado: ${r.created} novo(s), ${r.updated} atualizado(s).`, "ok");
+        else toast(`Nada novo no Google (verifiquei ${r.calendars || 1} calendário(s)). Eventos de dia inteiro são ignorados.`, "");
+      } else if (r.created > 0) {
+        toast(`${r.created} evento(s) trazido(s) do Google.`, "ok");
+      }
       await render();
     } catch (e) { if (manual) toast(e.message, "err"); }
   }

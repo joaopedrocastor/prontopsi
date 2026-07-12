@@ -29,9 +29,11 @@ from .settings_service import get_settings
 
 logger = logging.getLogger("anamnese")
 
-# calendar.events: agenda. drive.file: só arquivos que o próprio app cria no Drive.
+# calendar.events: criar/editar eventos. calendar.readonly: listar TODOS os
+# calendários e ler eventos deles. drive.file: só arquivos que o app cria.
 SCOPES = [
     "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/calendar.readonly",
     "https://www.googleapis.com/auth/drive.file",
 ]
 DRIVE_FOLDER_NAME = "ProntoPsi - Fichas"
@@ -175,66 +177,97 @@ def _wallclock(dt_str: str) -> str | None:
     return dt_str[:16]
 
 
-def pull_events(db: Session, days_back: int = 30, days_forward: int = 180) -> dict:
+def _list_calendar_ids(service, settings) -> list[str]:
+    """IDs dos calendários a sincronizar.
+
+    Se a usuária fixou um calendário nas configurações (diferente de 'primary'),
+    usa só ele. Caso contrário, lista TODOS os calendários da conta (assim
+    eventos criados em qualquer 'agenda' do Google são trazidos, não só o
+    principal). Se não conseguir listar, cai no 'primary'.
+    """
+    configured = (settings.google_calendar_id or "").strip()
+    if configured and configured.lower() != "primary":
+        return [configured]
+    try:
+        ids, page = [], None
+        while True:
+            resp = service.calendarList().list(pageToken=page, maxResults=250).execute()
+            ids += [it["id"] for it in resp.get("items", [])]
+            page = resp.get("nextPageToken")
+            if not page:
+                break
+        return ids or ["primary"]
+    except Exception as exc:
+        logger.info("Não foi possível listar calendários (%s); usando o principal.", exc)
+        return ["primary"]
+
+
+def pull_events(db: Session, days_back: int = 30, days_forward: int = 365) -> dict:
     """Traz os eventos do Google para a agenda do app (Google -> app).
 
-    Casa pelo google_event_id (não duplica): cria os novos e atualiza os
-    existentes. Por segurança, NÃO apaga agendamentos do app. Eventos de dia
-    inteiro e cancelados são ignorados.
+    Lê TODOS os calendários da conta (ou o fixado nas configurações). Casa pelo
+    google_event_id (não duplica): cria os novos e atualiza os existentes. Por
+    segurança, NÃO apaga agendamentos do app. Eventos de dia inteiro e
+    cancelados são ignorados.
     """
     settings = get_settings(db)
     if not is_configured(settings):
         raise ValueError("Configure o Google primeiro.")
     service = _service(settings)
     if not service:
-        raise ValueError("Conte a conta do Google (Conectar) antes de sincronizar.")
+        raise ValueError("Conecte a conta do Google (Conectar) antes de sincronizar.")
 
-    cal = settings.google_calendar_id or "primary"
     now = datetime.now(timezone.utc)
     time_min = (now - timedelta(days=days_back)).isoformat()
     time_max = (now + timedelta(days=days_forward)).isoformat()
 
-    stats = {"created": 0, "updated": 0, "skipped": 0}
-    page_token = None
-    while True:
-        resp = service.events().list(
-            calendarId=cal, timeMin=time_min, timeMax=time_max,
-            singleEvents=True, orderBy="startTime", maxResults=250,
-            pageToken=page_token,
-        ).execute()
-        for ev in resp.get("items", []):
-            if ev.get("status") == "cancelled":
-                stats["skipped"] += 1
-                continue
-            start = _wallclock((ev.get("start") or {}).get("dateTime"))
-            end = _wallclock((ev.get("end") or {}).get("dateTime")) or start
-            if not start:
-                stats["skipped"] += 1  # dia inteiro / sem horário
-                continue
-            gid = ev.get("id")
-            title = ev.get("summary") or "Evento (Google)"
-            notes = ev.get("description") or None
+    stats = {"created": 0, "updated": 0, "skipped": 0, "calendars": 0}
+    for cal in _list_calendar_ids(service, settings):
+        stats["calendars"] += 1
+        page_token = None
+        while True:
+            try:
+                resp = service.events().list(
+                    calendarId=cal, timeMin=time_min, timeMax=time_max,
+                    singleEvents=True, orderBy="startTime", maxResults=250,
+                    pageToken=page_token,
+                ).execute()
+            except Exception as exc:  # um calendário sem acesso não derruba os outros
+                logger.info("Falha ao ler calendário %s (%s).", cal, exc)
+                break
+            for ev in resp.get("items", []):
+                if ev.get("status") == "cancelled":
+                    stats["skipped"] += 1
+                    continue
+                start = _wallclock((ev.get("start") or {}).get("dateTime"))
+                end = _wallclock((ev.get("end") or {}).get("dateTime")) or start
+                if not start:
+                    stats["skipped"] += 1  # dia inteiro / sem horário
+                    continue
+                gid = ev.get("id")
+                title = ev.get("summary") or "Evento (Google)"
+                notes = ev.get("description") or None
 
-            existing = db.scalar(select(Appointment).where(Appointment.google_event_id == gid))
-            if existing:
-                existing.title = title
-                existing.start_at = start
-                existing.end_at = end
-                if notes is not None:
-                    existing.notes = notes
-                stats["updated"] += 1
-            else:
-                db.add(Appointment(
-                    id=new_uuid(), patient_id=None, title=title,
-                    start_at=start, end_at=end, status="agendada",
-                    notes=notes, google_event_id=gid,
-                    created_at=now_iso(), updated_at=now_iso(),
-                ))
-                stats["created"] += 1
-        db.commit()
-        page_token = resp.get("nextPageToken")
-        if not page_token:
-            break
+                existing = db.scalar(select(Appointment).where(Appointment.google_event_id == gid))
+                if existing:
+                    existing.title = title
+                    existing.start_at = start
+                    existing.end_at = end
+                    if notes is not None:
+                        existing.notes = notes
+                    stats["updated"] += 1
+                else:
+                    db.add(Appointment(
+                        id=new_uuid(), patient_id=None, title=title,
+                        start_at=start, end_at=end, status="agendada",
+                        notes=notes, google_event_id=gid,
+                        created_at=now_iso(), updated_at=now_iso(),
+                    ))
+                    stats["created"] += 1
+            db.commit()
+            page_token = resp.get("nextPageToken")
+            if not page_token:
+                break
     return stats
 
 

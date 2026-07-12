@@ -2,6 +2,11 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.1.3": [
+    "A sincronização com o Google agora traz eventos de TODOS os seus calendários (antes só o principal).",
+    "Novo: botão “Salvar no Drive” na ficha — guarda o PDF da anamnese no seu Google Drive.",
+    "Importante: entre em Configuração → Google e clique em Conectar de novo para autorizar o Drive e a leitura dos calendários.",
+  ],
   "1.1.2": [
     "Agenda em mão dupla com o Google: o que você cria no Google Calendar agora aparece no app.",
     "A Agenda sincroniza ao abrir (se o Google estiver conectado) e tem o botão “Sincronizar Google”.",
