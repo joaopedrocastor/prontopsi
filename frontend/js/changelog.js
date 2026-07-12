@@ -2,6 +2,10 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.1.2": [
+    "Agenda em mão dupla com o Google: o que você cria no Google Calendar agora aparece no app.",
+    "A Agenda sincroniza ao abrir (se o Google estiver conectado) e tem o botão “Sincronizar Google”.",
+  ],
   "1.1.1": [
     "Correção: o aviso “Configure seu consultório” some quando a logo já inclui nome e CRP.",
     "Melhoria: a tela sempre carrega atualizada após uma atualização (sem sobras da versão anterior).",
