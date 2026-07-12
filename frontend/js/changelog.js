@@ -2,6 +2,10 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.1.4": [
+    "Agora a versão do app aparece no canto inferior do menu (ajuda a saber se está atualizado).",
+    "O instalador no GitHub passa a ter a versão no nome do arquivo.",
+  ],
   "1.1.3": [
     "A sincronização com o Google agora traz eventos de TODOS os seus calendários (antes só o principal).",
     "Novo: botão “Salvar no Drive” na ficha — guarda o PDF da anamnese no seu Google Drive.",

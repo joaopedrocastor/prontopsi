@@ -5,11 +5,14 @@
 ; Pré-requisitos para gerar o instalador:
 ;   1) Gerar o executável:   .venv\Scripts\pyinstaller anamnese.spec
 ;   2) Instalar o Inno Setup: https://jrsoftware.org/isdl.php
-;   3) Compilar:              "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
-; Resultado: Output\ProntoPsi-Setup.exe
+;   3) Compilar (passe a versão):
+;        ISCC /DAppVersion=1.1.4 installer.iss
+; Resultado: Output\ProntoPsi-Setup-1.1.4.exe
 
 #define AppName "ProntoPsi"
-#define AppVersion "1.0.0"
+#ifndef AppVersion
+  #define AppVersion "0.0.0"
+#endif
 #define AppPublisher "ProntoPsi"
 #define AppExe "ProntoPsi.exe"
 
@@ -23,7 +26,7 @@ DefaultGroupName={#AppName}
 DisableProgramGroupPage=no
 AllowNoIcons=yes
 OutputDir=Output
-OutputBaseFilename={#AppName}-Setup
+OutputBaseFilename={#AppName}-Setup-{#AppVersion}
 SetupIconFile=frontend\assets\prontopsi.ico
 UninstallDisplayIcon={app}\{#AppExe}
 Compression=lzma2

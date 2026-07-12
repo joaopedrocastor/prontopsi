@@ -112,9 +112,18 @@ function startApp() {
     b.addEventListener("click", () => { location.hash = b.dataset.route; }));
   initZoom();
   refreshHeader();
+  mostrarVersao();
   window.addEventListener("hashchange", router);
   router();
   mostrarNovidades();
+}
+
+// Mostra a versão instalada na barra lateral (ajuda a confirmar atualizações).
+async function mostrarVersao() {
+  const el = document.getElementById("app-version");
+  if (!el) return;
+  try { el.textContent = "ProntoPsi v" + (await api.info()).version; }
+  catch { el.textContent = "ProntoPsi"; }
 }
 
 // Após atualizar, mostra "Novidades da versão" uma vez (compara versão vista).
