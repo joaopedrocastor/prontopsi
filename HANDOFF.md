@@ -254,6 +254,9 @@ Backend pronto (`google_service.py`). Para funcionar, a usuária precisa:
   `google_service.py`). A Agenda sincroniza ao abrir (se conectada) e tem botão
   "🔄 Sincronizar Google". Por segurança, o pull **não apaga** agendamentos do
   app; ignora eventos de dia inteiro e cancelados; casa por `google_event_id`.
+- **Lê todos os calendários:** o pull usa `calendar.readonly` + `calendarList`
+  para trazer eventos de **qualquer** calendário da conta (não só `primary`).
+  Se `settings.google_calendar_id` for fixado (≠ primary), usa só ele.
 - **Google Drive:** botão "☁ Salvar no Drive" na ficha (`POST
   /api/anamneses/{id}/drive`) sobe o PDF para a pasta "ProntoPsi - Fichas".
   Escopo `drive.file` (só arquivos criados pelo app). **Ao adicionar o Drive, o
