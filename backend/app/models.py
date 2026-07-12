@@ -100,6 +100,8 @@ class Anamnesis(Base):
     status: Mapped[str] = mapped_column(String(20), default="rascunho")  # 'rascunho' | 'concluida'
     # Dicionario {chave_do_campo: valor} conforme form_schema.
     data: Mapped[dict] = mapped_column(JSON, default=dict)
+    # ID do PDF desta ficha no Google Drive (quando salvo lá) — evita duplicar.
+    google_drive_file_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     created_at: Mapped[str] = mapped_column(String(30), default=now_iso)
     updated_at: Mapped[str] = mapped_column(String(30), default=now_iso, onupdate=now_iso)

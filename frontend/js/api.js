@@ -65,6 +65,7 @@ export const api = {
   deleteAnamnesis: (id) => req("DELETE", `/api/anamneses/${id}`),
   missing: (id) => req("GET", `/api/anamneses/${id}/missing`),
   pdfUrl: (id) => `/api/anamneses/${id}/pdf`,
+  saveAnamnesisToDrive: (id) => req("POST", `/api/anamneses/${id}/drive`),
 
   // appointments (agenda)
   listAppointments: (start, end) => req("GET", `/api/appointments?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),

@@ -29,13 +29,21 @@ from .settings_service import get_settings
 
 logger = logging.getLogger("anamnese")
 
-SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
+# calendar.events: agenda. drive.file: só arquivos que o próprio app cria no Drive.
+SCOPES = [
+    "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/drive.file",
+]
+DRIVE_FOLDER_NAME = "ProntoPsi - Fichas"
 
 try:  # bibliotecas opcionais
+    import io as _io
+
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import InstalledAppFlow
     from googleapiclient.discovery import build
+    from googleapiclient.http import MediaIoBaseUpload
     GOOGLE_AVAILABLE = True
 except Exception:  # pragma: no cover - ambiente sem as libs
     GOOGLE_AVAILABLE = False
@@ -228,3 +236,65 @@ def pull_events(db: Session, days_back: int = 30, days_forward: int = 180) -> di
         if not page_token:
             break
     return stats
+
+
+# ---------------- Google Drive (salvar PDFs das fichas) ----------------
+def _drive_service(settings: Settings):
+    creds = _credentials(settings)
+    if not creds:
+        return None
+    return build("drive", "v3", credentials=creds, cache_discovery=False)
+
+
+def _ensure_drive_folder(service) -> str:
+    """Acha (ou cria) a pasta 'ProntoPsi - Fichas' no Drive e devolve o id."""
+    q = (f"mimeType='application/vnd.google-apps.folder' and "
+         f"name='{DRIVE_FOLDER_NAME}' and trashed=false")
+    res = service.files().list(q=q, spaces="drive", fields="files(id,name)").execute()
+    files = res.get("files", [])
+    if files:
+        return files[0]["id"]
+    meta = {"name": DRIVE_FOLDER_NAME, "mimeType": "application/vnd.google-apps.folder"}
+    return service.files().create(body=meta, fields="id").execute()["id"]
+
+
+def upload_pdf(db: Session, filename: str, pdf_bytes: bytes,
+               existing_file_id: str | None = None) -> dict:
+    """Sobe (ou atualiza) um PDF na pasta do ProntoPsi no Drive.
+
+    Retorna {id, link}. Levanta ValueError com mensagem amigável em caso de
+    problema (ex.: precisa reconectar para autorizar o Drive).
+    """
+    if not GOOGLE_AVAILABLE:
+        raise ValueError("Integração Google não disponível nesta versão.")
+    if not is_connected():
+        raise ValueError("Conecte o Google primeiro (Configuração).")
+    settings = get_settings(db)
+    service = _drive_service(settings)
+    if not service:
+        raise ValueError("Conecte o Google primeiro (Configuração).")
+
+    def _media():
+        return MediaIoBaseUpload(_io.BytesIO(pdf_bytes), mimetype="application/pdf", resumable=False)
+
+    def _create():
+        folder_id = _ensure_drive_folder(service)
+        body = {"name": filename, "parents": [folder_id]}
+        return service.files().create(body=body, media_body=_media(),
+                                      fields="id,webViewLink").execute()
+
+    try:
+        if existing_file_id:
+            try:
+                f = service.files().update(fileId=existing_file_id, media_body=_media(),
+                                           fields="id,webViewLink").execute()
+            except Exception:  # arquivo apagado no Drive -> cria de novo
+                f = _create()
+        else:
+            f = _create()
+        return {"id": f.get("id"), "link": f.get("webViewLink")}
+    except Exception as exc:
+        raise ValueError(
+            "Falha ao enviar para o Drive. Talvez seja preciso clicar em "
+            f"Conectar de novo para autorizar o Google Drive. ({exc})"
+        ) from exc

@@ -3,8 +3,19 @@
 
 import { api } from "../api.js";
 import { setLeaveHook } from "../app.js";
-import { h, clear, toast, calcIdade, debounce } from "../util.js";
+import { h, clear, toast, debounce, calcIdade } from "../util.js";
 import { exportarFicha } from "./export.js";
+
+// Gera o PDF da ficha e salva no Google Drive (na pasta "ProntoPsi - Fichas").
+async function salvarNoDrive(id, saveNow, autosave, getSaveState) {
+  autosave.cancel();
+  if (getSaveState() !== "saved") { try { await saveNow(); } catch {} }
+  toast("Enviando para o Google Drive...", "");
+  try {
+    await api.saveAnamnesisToDrive(id);
+    toast("Ficha salva no Google Drive (pasta “ProntoPsi - Fichas”).", "ok");
+  } catch (e) { toast(e.message, "err"); }
+}
 
 let SCHEMA = null;
 async function getSchema() { if (!SCHEMA) SCHEMA = await api.formSchema(); return SCHEMA; }
@@ -101,6 +112,7 @@ export async function renderAnamnesis(container, id) {
     h("div", { class: "spacer" }),
     h("label", { class: "muted", style: "font-size:12.5px" }, "Status:"),
     statusSel,
+    h("button", { class: "btn-outline", title: "Salvar o PDF no seu Google Drive", onClick: () => salvarNoDrive(id, saveNow, autosave, () => saveState) }, "☁ Salvar no Drive"),
     h("button", { class: "btn", onClick: async () => { autosave.cancel(); if (saveState !== "saved") await saveNow(); exportarFicha(id); } }, "📄 Gerar PDF"),
   ]);
   container.appendChild(bar);

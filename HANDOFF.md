@@ -254,6 +254,12 @@ Backend pronto (`google_service.py`). Para funcionar, a usuária precisa:
   `google_service.py`). A Agenda sincroniza ao abrir (se conectada) e tem botão
   "🔄 Sincronizar Google". Por segurança, o pull **não apaga** agendamentos do
   app; ignora eventos de dia inteiro e cancelados; casa por `google_event_id`.
+- **Google Drive:** botão "☁ Salvar no Drive" na ficha (`POST
+  /api/anamneses/{id}/drive`) sobe o PDF para a pasta "ProntoPsi - Fichas".
+  Escopo `drive.file` (só arquivos criados pelo app). **Ao adicionar o Drive, o
+  escopo mudou → quem já conectou precisa clicar Conectar de novo** (novo
+  consentimento). `anamneses.google_drive_file_id` guarda o id p/ atualizar sem
+  duplicar. ⚠️ LGPD: subir prontuário p/ nuvem é opcional/escolha da usuária.
 
 ---
 

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from ..form_schema import missing_report
 from ..database import get_db
 from ..schemas import AnamnesisCreate, AnamnesisOut, AnamnesisSummary, AnamnesisUpdate
-from ..services import anamnesis_service, pdf_service, settings_service
+from ..services import anamnesis_service, google_service, pdf_service, settings_service
 from ..services.transfer_service import _slug
 
 router = APIRouter(prefix="/api/anamneses", tags=["anamneses"])
@@ -83,3 +83,22 @@ def download_pdf(anamnesis_id: str, db: Session = Depends(get_db)):
     fname = f"anamnese_{_slug(patient.name) or 'ficha'}.pdf"
     headers = {"Content-Disposition": f'attachment; filename="{fname}"'}
     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers=headers)
+
+
+@router.post("/{anamnesis_id}/drive")
+def save_to_drive(anamnesis_id: str, db: Session = Depends(get_db)) -> dict:
+    """Gera o PDF da ficha e salva na pasta do ProntoPsi no Google Drive."""
+    anamnesis = anamnesis_service.get_anamnesis(db, anamnesis_id)
+    if not anamnesis:
+        raise HTTPException(status_code=404, detail="Ficha não encontrada.")
+    patient = anamnesis.patient
+    settings = settings_service.get_settings(db)
+    pdf_bytes = pdf_service.build_pdf(anamnesis, patient, settings)
+    fname = f"anamnese_{_slug(patient.name) or 'ficha'}_{anamnesis.id[:8]}.pdf"
+    try:
+        result = google_service.upload_pdf(db, fname, pdf_bytes, anamnesis.google_drive_file_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    anamnesis.google_drive_file_id = result["id"]
+    db.commit()
+    return {"ok": True, "link": result.get("link")}
