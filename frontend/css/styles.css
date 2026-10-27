@@ -41,6 +41,7 @@ body {
 a { color: var(--primary); }
 
 /* ---------- Marca ProntoPsi ---------- */
+.pp-logo-img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 .pp-logo { display: inline-flex; align-items: center; gap: 10px; }
 .pp-logo-v { flex-direction: column; gap: 6px; text-align: center; }
 .pp-mark { flex: none; }
@@ -59,7 +60,7 @@ a { color: var(--primary); }
   position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column;
   padding: 18px 14px; gap: 6px;
 }
-.sidebar-logo { padding: 6px 8px 16px; border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: 10px; }
+.sidebar-logo { padding: 6px 8px 14px; border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: 10px; text-align: center; }
 .sidebar-nav { display: flex; flex-direction: column; gap: 3px; flex: 1; }
 .side-item {
   display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;

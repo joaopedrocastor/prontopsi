@@ -2,6 +2,9 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.1.6": [
+    "Nova identidade visual: logo e ícone do ProntoPsi atualizados.",
+  ],
   "1.1.5": [
     "Backup agora salva TAMBÉM a sua logo e os documentos anexados (antes só os dados).",
     "Restaurar aceita o novo backup (.zip) e também os antigos (.db).",
