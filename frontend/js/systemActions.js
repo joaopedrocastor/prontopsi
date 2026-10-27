@@ -21,7 +21,7 @@ export async function restaurarBackup() {
     toast("Restauração disponível no aplicativo desktop.", "err");
     return;
   }
-  const arquivo = await escolherArquivo("Banco de dados (*.db)");
+  const arquivo = await escolherArquivo("backup");
   if (!arquivo) return;
   const ok = await confirmar({
     title: "Restaurar backup",

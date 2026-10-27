@@ -63,6 +63,9 @@ def _first(result):
 def _file_types(filtro: str):
     f = (filtro or "").upper()
     todos = "Todos os arquivos (*.*)"
+    if "BACKUP" in f:
+        return ("Backup do ProntoPsi (*.zip;*.db)", "Arquivo ZIP (*.zip)",
+                "Banco de dados (*.db)", todos)
     if "PDF" in f:
         return ("Documento PDF (*.pdf)", todos)
     if "ZIP" in f:

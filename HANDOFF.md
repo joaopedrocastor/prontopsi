@@ -124,6 +124,7 @@ Migrações Alembic aplicadas em ordem no primeiro boot:
 - **0004** — colunas de config do Google
 - **0005** — `patients.email` + `patients.status`; tabelas `client_notes`
   (timeline) e `documents`
+- **0006** — `anamneses.google_drive_file_id`
 
 Tabelas:
 - **settings** (linha única): identidade (logo/nome/CRP), senha (hash),
@@ -168,14 +169,21 @@ Tabelas:
 
 - [ ] **Financeiro** (pagamento de sessões, receita) — próximo módulo pedido.
 - [ ] **Relatórios** com gráficos/tabelas (clientes, sessões, financeiro).
-- [ ] **Export/import de documentos** (arquivos): hoje o JSON leva pacientes,
-      fichas, agenda e **anotações da timeline**; os arquivos de `documents/`
-      ainda não entram no export.
+- [ ] **Criptografia do banco (SQLCipher)** — `anamnese.db` é texto puro (dado
+      sensível / LGPD). Interino: orientar BitLocker + senha de abertura. É
+      mudança grande (dep nativa no PyInstaller + migrar o `.db` existente +
+      chave derivada da senha) → merece versão dedicada e testada.
 - [ ] **Testar o OAuth do Google ponta a ponta** na máquina real (o backend está
       pronto; falta validar o fluxo do navegador com credenciais reais).
 - [ ] (Opcional) **Assinar o .exe** para evitar o aviso do SmartScreen.
 - [ ] (Opcional) Instalador **onedir** para abertura mais rápida (hoje onefile
       extrai em ~5-10s no 1º clique).
+
+**Feito na 1.1.5 (revisão de código):** backup agora é ZIP completo
+(banco + logo + documentos) e restore aceita ZIP/.db; export/import inclui os
+arquivos de documentos; corrigido o refresh do token Google (não força escopos
+novos, o push não quebra mais em silêncio); suíte de testes em `tests/`
+(`.venv\Scripts\python -m pytest`); removido `home.js` morto.
 
 ---
 
@@ -211,16 +219,25 @@ Windows atualizado). Nada de Python.
 
 ## 11. Publicar uma nova versão (checklist)
 
-1. Editar `APP_VERSION` em `backend/app/config.py` (ex.: `1.1.0`).
-2. Reconstruir exe + instalador (passo 10).
-3. Publicar release com a MESMA tag da versão:
+1. Editar `APP_VERSION` em `backend/app/config.py` (ex.: `1.1.4`).
+2. Adicionar as novidades em `frontend/js/changelog.js` (chave = versão).
+3. Reconstruir o exe: `.\.venv\Scripts\pyinstaller anamnese.spec`
+4. Compilar o instalador **passando a versão** (nome do arquivo fica versionado):
    ```powershell
-   & "C:\Program Files\GitHub CLI\gh.exe" release create v1.1.0 `
-     "C:\Claude\anamnese\Output\ProntoPsi-Setup.exe" `
-     --repo joaopedrocastor/prontopsi-releases `
-     --title "ProntoPsi 1.1.0" --notes "novidades..."
+   & "C:\Users\Joao Pedro\AppData\Local\Programs\Inno Setup 6\ISCC.exe" /DAppVersion=1.1.4 installer.iss
+   # -> Output\ProntoPsi-Setup-1.1.4.exe
    ```
-4. Quem está numa versão menor recebe o aviso automaticamente no Painel.
+5. Publicar release com a MESMA tag:
+   ```powershell
+   & "C:\Program Files\GitHub CLI\gh.exe" release create v1.1.4 `
+     "C:\Claude\anamnese\Output\ProntoPsi-Setup-1.1.4.exe" `
+     --repo joaopedrocastor/prontopsi-releases `
+     --title "ProntoPsi 1.1.4" --notes "novidades..."
+   ```
+6. Quem está numa versão menor recebe o aviso automaticamente no Painel.
+
+> A versão instalada aparece no rodapé do menu lateral ("ProntoPsi vX.Y.Z") —
+> use para confirmar que a atualização foi aplicada.
 
 > A tag precisa ser **maior** que a `APP_VERSION` instalada para o aviso
 > aparecer (compara números: `v1.1.0 > 1.0.0`).
@@ -278,9 +295,11 @@ Backend pronto (`google_service.py`). Para funcionar, a usuária precisa:
 
 - **Dev:** `C:\Claude\anamnese\data\`
 - **App instalado:** `%LOCALAPPDATA%\AnamneseInfantil\`
-  - `anamnese.db` (banco), `assets/` (logo), `google_token.json`.
-- **Backup**: botão copia o `anamnese.db`. **Exportar dados**: gera ZIP (JSON +
-  logo + PDFs) — mecanismo oficial de migração.
+  - `anamnese.db` (banco), `assets/` (logo), `documents/` (anexos),
+    `google_token.json`.
+- **Backup**: gera um **ZIP completo** (banco + logo + documentos);
+  **Restaurar** aceita o ZIP (ou um `.db` antigo). **Exportar dados**: ZIP
+  (JSON + logo + documentos + PDFs) — mecanismo oficial de migração.
 - Ao instalar versão nova por cima, os dados são **preservados** (migração
   automática no boot).
 

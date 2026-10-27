@@ -1,0 +1,4 @@
+# Dependências só para desenvolvimento/testes (não entram no executável).
+-r requirements.txt
+pytest==9.0.1
+httpx2==2.5.0

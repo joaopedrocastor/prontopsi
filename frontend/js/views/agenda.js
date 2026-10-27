@@ -79,6 +79,7 @@ export async function renderAgenda(container) {
   }
 
   // Puxa os eventos do Google para o app (Google -> app). manual=true mostra avisos.
+  // Só re-renderiza quando algo mudou (evita redesenho desnecessário).
   async function sincronizarGoogle(manual) {
     try {
       const r = await api.googleSync();
@@ -89,7 +90,7 @@ export async function renderAgenda(container) {
       } else if (r.created > 0) {
         toast(`${r.created} evento(s) trazido(s) do Google.`, "ok");
       }
-      await render();
+      if (manual || trouxe > 0) await render();
     } catch (e) { if (manual) toast(e.message, "err"); }
   }
 

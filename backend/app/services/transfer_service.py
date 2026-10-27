@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from ..config import get_assets_dir, get_data_dir
 from ..form_schema import FORM_VERSION
-from ..models import Anamnesis, Appointment, ClientNote, Patient, Settings
+from ..models import Anamnesis, Appointment, ClientNote, Document, Patient, Settings
 from ..utils import now_iso
 from . import pdf_service, settings_service
 
@@ -29,6 +29,7 @@ def export_dict(db: Session) -> dict:
     anamneses = db.scalars(select(Anamnesis).order_by(Anamnesis.created_at)).all()
     appointments = db.scalars(select(Appointment).order_by(Appointment.created_at)).all()
     notes = db.scalars(select(ClientNote).order_by(ClientNote.created_at)).all()
+    documents = db.scalars(select(Document).order_by(Document.created_at)).all()
 
     return {
         "app": "AnamneseInfantil",
@@ -93,6 +94,14 @@ def export_dict(db: Session) -> dict:
             }
             for ap in appointments
         ],
+        "documents": [
+            {
+                "id": d.id, "patient_id": d.patient_id, "filename": d.filename,
+                "stored_path": d.stored_path, "size": d.size, "mime": d.mime,
+                "created_at": d.created_at, "updated_at": d.updated_at,
+            }
+            for d in documents
+        ],
     }
 
 
@@ -108,6 +117,13 @@ def export_zip(db: Session, include_pdfs: bool = True) -> bytes:
         logo = settings_service.resolve_logo_path(settings)
         if logo:
             zf.write(str(logo), f"assets/{logo.name}")
+
+        # Arquivos dos documentos anexados (caminho relativo ao diretorio de dados).
+        data_dir = get_data_dir()
+        for d in db.scalars(select(Document)).all():
+            f = data_dir / d.stored_path
+            if f.exists():
+                zf.write(str(f), d.stored_path)
 
         if include_pdfs:
             patients = {p.id: p for p in db.scalars(select(Patient)).all()}
@@ -195,6 +211,18 @@ def import_dict(db: Session, payload: dict) -> dict:
         db.merge(obj)
         stats["appointments"] = stats.get("appointments", 0) + 1
 
+    for d in payload.get("documents", []):
+        obj = db.get(Document, d["id"]) or Document(id=d["id"])
+        obj.patient_id = d["patient_id"]
+        obj.filename = d.get("filename", "arquivo")
+        obj.stored_path = d.get("stored_path")
+        obj.size = d.get("size", 0)
+        obj.mime = d.get("mime")
+        if d.get("created_at"):
+            obj.created_at = d["created_at"]
+        db.merge(obj)
+        stats["documents"] = stats.get("documents", 0) + 1
+
     db.commit()
     return stats
 
@@ -203,15 +231,22 @@ def import_bytes(db: Session, filename: str, content: bytes) -> dict:
     """Aceita tanto .json quanto .zip exportado por este app."""
     name = (filename or "").lower()
     if name.endswith(".zip") or content[:2] == b"PK":
+        data_dir = get_data_dir()
         with zipfile.ZipFile(io.BytesIO(content)) as zf:
             payload = json.loads(zf.read("data.json").decode("utf-8"))
-            # Restaura logo, se houver.
             for info in zf.namelist():
-                if info.startswith("assets/") and not info.endswith("/"):
+                if info.endswith("/"):
+                    continue
+                if info.startswith("assets/"):
                     dest = get_assets_dir() / Path(info).name
                     dest.write_bytes(zf.read(info))
-                    rel = f"assets/{dest.name}"
-                    payload.setdefault("settings", {})["logo_path"] = rel
+                    payload.setdefault("settings", {})["logo_path"] = f"assets/{dest.name}"
+                elif info.startswith("documents/"):
+                    # Restaura o arquivo do documento no mesmo caminho relativo.
+                    dest = (data_dir / info).resolve()
+                    if str(dest).startswith(str(data_dir.resolve())):
+                        dest.parent.mkdir(parents=True, exist_ok=True)
+                        dest.write_bytes(zf.read(info))
         return import_dict(db, payload)
 
     payload = json.loads(content.decode("utf-8"))

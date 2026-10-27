@@ -247,6 +247,30 @@ async function renderGoogleCard(wrap) {
       onClick: async () => { try { await api.googleDisconnect(); toast("Desconectado.", "ok"); renderGoogleCard(wrap); } catch (e) { toast(e.message, "err"); } },
     }, "Desconectar") : null,
   ]));
+
+  // Diagnóstico: testar a sincronização e ver o resultado (ou o erro) aqui.
+  if (st.connected) {
+    const diag = h("div", { class: "hint", style: "margin-top:4px" }, "");
+    const syncBtn = h("button", {
+      class: "btn-outline btn-sm",
+      onClick: async () => {
+        syncBtn.disabled = true; diag.textContent = "Sincronizando...";
+        try {
+          const r = await api.googleSync();
+          diag.style.color = "var(--ok)";
+          diag.textContent = `OK — ${r.created} novo(s), ${r.updated} atualizado(s), lidos ${r.calendars || 1} calendário(s).`;
+        } catch (e) { diag.style.color = "var(--danger)"; diag.textContent = e.message; }
+        syncBtn.disabled = false;
+      },
+    }, "🔄 Testar sincronização da agenda");
+    wrap.appendChild(h("div", { style: "margin-top:16px;border-top:1px solid var(--line);padding-top:14px" }, [
+      h("div", { class: "field" }, [
+        h("label", {}, "Diagnóstico"),
+        h("div", { class: "hint" }, "Traz os eventos do Google e mostra aqui o que veio (ou o erro). Se não achar nada, confira o calendário e se os eventos têm horário (dia inteiro é ignorado)."),
+        syncBtn, diag,
+      ]),
+    ]));
+  }
 }
 
 function renderSettingsReload() {

@@ -2,6 +2,12 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.1.5": [
+    "Backup agora salva TAMBÉM a sua logo e os documentos anexados (antes só os dados).",
+    "Restaurar aceita o novo backup (.zip) e também os antigos (.db).",
+    "Correção na sincronização com o Google (o envio de agendamentos não para mais sozinho).",
+    "Nova opção em Configuração → Google: “Testar sincronização” mostra o resultado ou o erro.",
+  ],
   "1.1.4": [
     "Agora a versão do app aparece no canto inferior do menu (ajuda a saber se está atualizado).",
     "O instalador no GitHub passa a ter a versão no nome do arquivo.",

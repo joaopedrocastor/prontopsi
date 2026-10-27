@@ -109,10 +109,23 @@ def disconnect() -> None:
 def _credentials(settings: Settings):
     if not is_connected():
         return None
-    creds = Credentials.from_authorized_user_file(str(_token_path()), SCOPES)
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-        _token_path().write_text(creds.to_json(), encoding="utf-8")
+    # Carrega SEM forçar SCOPES: usa os escopos realmente concedidos no token.
+    # (Forçar os escopos novos quebraria o refresh de tokens antigos — o push
+    # pararia em silêncio até reconectar.) Recursos novos (Drive/leitura de
+    # todos os calendários) só funcionam após reconectar, falhando de forma
+    # controlada enquanto isso.
+    try:
+        creds = Credentials.from_authorized_user_file(str(_token_path()))
+    except Exception as exc:
+        logger.warning("Token Google inválido: %s", exc)
+        return None
+    try:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            _token_path().write_text(creds.to_json(), encoding="utf-8")
+    except Exception as exc:
+        logger.warning("Falha ao renovar o token Google: %s", exc)
+        return None
     return creds
 
 
