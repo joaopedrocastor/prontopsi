@@ -369,6 +369,17 @@ textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
 .pront-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .pront-text { white-space: pre-wrap; font-size: 14px; color: var(--text); }
 
+/* ---------- Relatórios (gráficos) ---------- */
+.rep-bars { display: flex; align-items: flex-end; gap: 10px; min-height: 170px; padding: 8px 2px 0; overflow-x: auto; }
+.rep-bar-group { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; min-width: 44px; }
+.rep-bar-pair { display: flex; align-items: flex-end; gap: 3px; height: 150px; }
+.rep-bar { width: 16px; border-radius: 5px 5px 0 0; min-height: 2px; transition: height .2s; }
+.rep-bar-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.rep-bar-val { font-size: 11px; color: var(--text); font-weight: 600; }
+.rep-legend { display: flex; gap: 16px; justify-content: center; margin-top: 10px; }
+.rep-leg-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.rep-leg-dot { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
 @media (max-width: 820px) {
   .cli-layout { grid-template-columns: 1fr; }
   .cli-nav { position: static; display: flex; flex-wrap: wrap; }

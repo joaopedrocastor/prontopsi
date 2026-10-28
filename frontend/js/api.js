@@ -89,6 +89,9 @@ export const api = {
   updateFinance: (id, data) => req("PATCH", `/api/finance/entries/${id}`, data),
   deleteFinance: (id) => req("DELETE", `/api/finance/entries/${id}`),
 
+  // relatórios
+  reportsOverview: (months = 6) => req("GET", `/api/reports/overview?months=${months}`),
+
   // google agenda
   googleStatus: () => req("GET", "/api/google/status"),
   googleSaveConfig: (data) => req("PUT", "/api/google/config", data),
