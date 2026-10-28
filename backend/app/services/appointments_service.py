@@ -40,6 +40,7 @@ def _to_dict(a: Appointment, patient_name: str | None = None) -> dict:
         "modality": a.modality,
         "color": a.color,
         "notes": a.notes,
+        "evolution": a.evolution,
         "created_at": a.created_at,
         "updated_at": a.updated_at,
     }
@@ -96,6 +97,7 @@ def create_appointment(db: Session, data: dict) -> dict:
         modality=data.get("modality"),
         color=data.get("color"),
         notes=data.get("notes"),
+        evolution=data.get("evolution"),
     )
     db.add(a)
     db.commit()
@@ -108,7 +110,7 @@ def update_appointment(db: Session, appointment_id: str, data: dict) -> dict | N
     a = db.get(Appointment, appointment_id)
     if not a:
         return None
-    for field in ("title", "start_at", "end_at", "status", "modality", "color", "notes"):
+    for field in ("title", "start_at", "end_at", "status", "modality", "color", "notes", "evolution"):
         if field in data and data[field] is not None:
             setattr(a, field, data[field])
     if "patient_id" in data:

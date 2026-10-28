@@ -13,6 +13,7 @@ import { renderPatients, renderPatientForm, renderPatientDetail } from "./views/
 import { renderAnamnesis } from "./views/anamnese.js";
 import { renderAgenda } from "./views/agenda.js";
 import { renderExport } from "./views/export.js";
+import { renderFinance } from "./views/finance.js";
 import { renderSoon } from "./views/soon.js";
 
 const routes = [
@@ -24,7 +25,7 @@ const routes = [
   { re: /^#\/paciente\/([^/]+)\/editar$/, view: (c, m) => renderPatientForm(c, m[1]), nav: "#/pacientes", title: "Clientes" },
   { re: /^#\/paciente\/([^/]+)$/, view: (c, m) => renderPatientDetail(c, m[1]), nav: "#/pacientes", title: "Clientes" },
   { re: /^#\/ficha\/([^/]+)$/, view: (c, m) => renderAnamnesis(c, m[1]), nav: "#/pacientes", title: "Ficha de Anamnese" },
-  { re: /^#\/financeiro$/, view: (c) => renderSoon(c, "Financeiro", "💰"), nav: "#/financeiro", title: "Financeiro" },
+  { re: /^#\/financeiro$/, view: renderFinance, nav: "#/financeiro", title: "Financeiro" },
   { re: /^#\/relatorios$/, view: (c) => renderSoon(c, "Relatórios", "📊"), nav: "#/relatorios", title: "Relatórios" },
   { re: /^#\/config$/, view: renderSettings, nav: "#/config", title: "Configuração" },
   { re: /^#\/exportar$/, view: renderExport, nav: "#/painel", title: "Exportar PDF" },

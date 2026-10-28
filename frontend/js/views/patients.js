@@ -181,9 +181,14 @@ const SECOES = [
   { id: "cadastro", label: "Cadastro", icon: "📝" },
   { id: "anamnese", label: "Anamnese", icon: "📋" },
   { id: "sessoes", label: "Sessões realizadas", icon: "🗓️" },
+  { id: "prontuario", label: "Prontuário", icon: "📖" },
   { id: "documentos", label: "Documentos", icon: "📎" },
-  { id: "financeiro", label: "Financeiro", icon: "💰", soon: true },
+  { id: "financeiro", label: "Financeiro", icon: "💰" },
 ];
+
+// Formata valor em reais (R$ 1.234,56).
+function fmtMoeda(v) { return (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+function hojeISOd() { const d = new Date(); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; }
 
 export async function renderPatientDetail(container, id) {
   let p;
@@ -236,8 +241,9 @@ export async function renderPatientDetail(container, id) {
     else if (current === "cadastro") await secCadastro(content, id, () => renderPatientDetail(container, id));
     else if (current === "anamnese") await secAnamnese(content, id, p);
     else if (current === "sessoes") await secSessoes(content, id);
+    else if (current === "prontuario") await secProntuario(content, id, p);
     else if (current === "documentos") await secDocumentos(content, id);
-    else content.appendChild(h("div", { class: "empty" }, [h("div", { class: "empty-icon" }, "💰"), h("p", { class: "muted" }, "Financeiro chega em breve.")]));
+    else if (current === "financeiro") await secFinanceiro(content, id, p);
   }
 
   renderNav();
@@ -376,16 +382,72 @@ async function secSessoes(content, id) {
   sess = sess.slice().reverse(); // mais recentes primeiro
   if (!sess.length) { list.appendChild(h("div", { class: "empty" }, [h("div", { class: "empty-icon" }, "🗓️"), h("div", { class: "muted" }, "Nenhuma sessão registrada. Agende na Agenda.")])); return; }
   const stLabel = { agendada: "Agendada", confirmada: "Confirmada", realizada: "Realizada", cancelada: "Cancelada", faltou: "Faltou" };
+  const reload = () => secSessoes(clearReturn(content), id);
   for (const a of sess) {
+    const temEvo = !!(a.evolution && a.evolution.trim());
     list.appendChild(h("div", { class: "list-item" }, [
       h("div", { class: "up-when", style: "min-width:96px" }, [h("div", { class: "d" }, fmtDataHora(a.start_at)), h("div", { class: "t", style: "font-size:15px" }, a.start_at.slice(11, 16))]),
       h("div", { class: "li-main" }, [
-        h("div", { class: "li-title" }, [h("span", { class: "badge badge-soon" }, stLabel[a.status] || a.status), a.modality ? "  " + a.modality : ""]),
+        h("div", { class: "li-title" }, [h("span", { class: "badge badge-soon" }, stLabel[a.status] || a.status), a.modality ? "  " + a.modality : "", temEvo ? h("span", { class: "badge badge-done", style: "margin-left:6px" }, "📖 Evolução") : null]),
         a.notes ? h("div", { class: "li-sub" }, a.notes) : h("div", { class: "li-sub muted" }, "Sem anotações"),
       ]),
-      h("button", { class: "btn-ghost btn-sm", onClick: () => (location.hash = "#/agenda") }, "Ver na agenda"),
+      h("div", { class: "li-actions" }, [
+        h("button", { class: "btn-outline btn-sm", onClick: () => openEvolutionEditor(a, reload) }, temEvo ? "Ver evolução" : "＋ Evolução"),
+        h("button", { class: "btn-ghost btn-sm", onClick: () => (location.hash = "#/agenda") }, "Agenda"),
+      ]),
     ]));
   }
+}
+
+// ----- Prontuário: evoluções clínicas das sessões (mais recente primeiro) -----
+async function secProntuario(content, id, p) {
+  const reload = () => secProntuario(clearReturn(content), id, p);
+  content.appendChild(h("h2", { style: "font-size:17px;color:var(--navy);margin:0 0 6px" }, "Prontuário"));
+  content.appendChild(h("p", { class: "muted", style: "font-size:13px;margin:0 0 14px" }, "Evoluções registradas nas sessões, da mais recente para a mais antiga. Clique para editar."));
+
+  let sess = [];
+  try { sess = await api.listAppointmentsByPatient(id); } catch (e) { toast(e.message, "err"); return; }
+  const comEvo = sess.filter((a) => a.evolution && a.evolution.trim()).sort((a, b) => b.start_at.localeCompare(a.start_at));
+
+  if (!comEvo.length) {
+    content.appendChild(h("div", { class: "empty" }, [
+      h("div", { class: "empty-icon" }, "📖"),
+      h("div", { class: "muted" }, "Nenhuma evolução registrada ainda."),
+      h("div", { class: "muted", style: "font-size:13px;margin-top:4px" }, "Abra uma sessão em “Sessões realizadas” e registre a evolução."),
+    ]));
+    return;
+  }
+  const list = h("div", { class: "list" });
+  content.appendChild(list);
+  for (const a of comEvo) {
+    list.appendChild(h("div", { class: "pront-card", onClick: () => openEvolutionEditor(a, reload) }, [
+      h("div", { class: "pront-head" }, [
+        h("span", { class: "tl-date" }, fmtDataHora(a.start_at) + " · " + a.start_at.slice(11, 16)),
+        h("span", { class: "icon-btn", title: "Editar" }, "✎"),
+      ]),
+      h("div", { class: "pront-text" }, a.evolution),
+    ]));
+  }
+}
+
+// Modal para escrever/editar a evolução clínica de uma sessão.
+function openEvolutionEditor(appt, reload) {
+  const quando = fmtDataHora(appt.start_at) + " às " + appt.start_at.slice(11, 16);
+  const textI = h("textarea", { rows: "9", placeholder: "Evolução da sessão (relato clínico, observações, encaminhamentos)..." }, appt.evolution || "");
+  modal({
+    title: "Evolução — " + quando,
+    content: h("div", {}, [
+      h("div", { class: "field" }, [h("label", {}, "Registro clínico"), textI]),
+      h("p", { class: "muted", style: "font-size:12px;margin:0" }, "Fica no prontuário do cliente e junto da sessão na agenda."),
+    ]),
+    actions: [
+      { label: "Cancelar", class: "btn-ghost" },
+      { label: "Salvar", class: "btn", onClick: async (close) => {
+        try { await api.updateAppointment(appt.id, { evolution: textI.value }); appt.evolution = textI.value; close(); toast("Evolução salva.", "ok"); reload(); }
+        catch (e) { toast(e.message, "err"); }
+      } },
+    ],
+  });
 }
 
 // ----- Documentos -----
@@ -416,6 +478,108 @@ async function secDocumentos(content, id) {
       ]),
     ]));
   }
+}
+
+// ----- Financeiro do cliente (lançamentos ligados a este paciente) -----
+async function secFinanceiro(content, id, p) {
+  const refresh = () => secFinanceiro(clearReturn(content), id, p);
+
+  content.appendChild(h("div", { class: "section-progress" }, [
+    h("h2", { style: "font-size:17px;color:var(--navy);margin:0" }, "Financeiro do cliente"),
+    h("div", { style: "display:flex;gap:8px" }, [
+      h("button", { class: "btn", onClick: () => cobrancaModal(id, p, null, refresh) }, "＋ Cobrança"),
+      h("button", { class: "btn-ghost btn-sm", onClick: () => (location.hash = "#/financeiro") }, "Abrir Financeiro"),
+    ]),
+  ]));
+
+  let items = [];
+  try { items = await api.listFinance({ patient_id: id }); } catch (e) { toast(e.message, "err"); return; }
+
+  // Totais (só receitas: cobranças do cliente).
+  const rec = items.filter((e) => e.kind === "receita");
+  const recebido = rec.filter((e) => e.paid).reduce((s, e) => s + e.amount, 0);
+  const aberto = rec.filter((e) => !e.paid).reduce((s, e) => s + e.amount, 0);
+  content.appendChild(h("div", { class: "grid grid-3", style: "margin-bottom:16px" }, [
+    miniStat("Recebido", fmtMoeda(recebido), "var(--ok)"),
+    miniStat("Em aberto", fmtMoeda(aberto), "var(--accent)"),
+    miniStat("Total", fmtMoeda(recebido + aberto), "var(--navy)"),
+  ]));
+
+  if (!items.length) {
+    content.appendChild(h("div", { class: "empty" }, [h("div", { class: "empty-icon" }, "💰"), h("div", { class: "muted" }, "Nenhuma cobrança lançada para este cliente.")]));
+    return;
+  }
+
+  const list = h("div", { class: "list" });
+  content.appendChild(list);
+  for (const e of items) {
+    const venc = e.due_date < hojeISOd() && !e.paid;
+    const badge = e.paid
+      ? h("span", { class: "badge badge-done" }, "Pago")
+      : venc ? h("span", { class: "badge badge-missing" }, "Vencida") : h("span", { class: "badge badge-draft" }, "Em aberto");
+    list.appendChild(h("div", { class: "list-item" }, [
+      h("div", { class: "up-when", style: "min-width:90px" }, [h("div", { class: "d" }, fmtData(e.due_date))]),
+      h("div", { class: "li-main" }, [
+        h("div", { class: "li-title" }, [e.description || "(cobrança)", "  ", badge]),
+        h("div", { class: "li-sub muted" }, e.category || (e.kind === "receita" ? "Receita" : "Despesa")),
+      ]),
+      h("span", { style: `font-weight:700;color:${e.kind === "receita" ? "var(--ok)" : "var(--accent)"}` }, (e.kind === "receita" ? "+ " : "− ") + fmtMoeda(e.amount)),
+      h("div", { class: "li-actions" }, [
+        h("button", { class: "btn-ghost btn-sm", title: e.paid ? "Marcar não pago" : "Marcar pago", onClick: async () => { try { await api.updateFinance(e.id, { paid: !e.paid }); refresh(); } catch (err) { toast(err.message, "err"); } } }, e.paid ? "↩" : "✓"),
+        h("button", { class: "btn-ghost btn-sm", onClick: () => cobrancaModal(id, p, e, refresh) }, "✎"),
+        h("button", { class: "btn-ghost btn-sm", onClick: async () => { if (await confirmar({ title: "Excluir lançamento", message: "Excluir esta cobrança?", okLabel: "Excluir", danger: true })) { await api.deleteFinance(e.id); refresh(); } } }, "🗑"),
+      ]),
+    ]));
+  }
+}
+
+function miniStat(label, value, color) {
+  return h("div", { class: "stat" }, [
+    h("div", { class: "st-label" }, label),
+    h("div", { class: "st-value", style: `font-size:19px;color:${color}` }, value),
+  ]);
+}
+
+// Modal de cobrança/lançamento já vinculado ao paciente.
+function cobrancaModal(patientId, p, entry, reload) {
+  const edit = !!entry;
+  const descI = h("input", { type: "text", value: entry ? entry.description : "Sessão", placeholder: "Descrição" });
+  const amountI = h("input", { type: "number", step: "0.01", min: "0", value: entry ? entry.amount : "", placeholder: "0,00" });
+  const catI = h("input", { type: "text", value: entry ? entry.category : "Consultas", placeholder: "Categoria" });
+  const dateI = h("input", { type: "date", value: entry ? entry.due_date : hojeISOd() });
+  const paidChk = h("input", { type: "checkbox" }); if (entry && entry.paid) paidChk.checked = true;
+  const kindSel = h("select", {}, [h("option", { value: "receita" }, "Receita (cobrança)"), h("option", { value: "despesa" }, "Despesa")]);
+  if (entry) kindSel.value = entry.kind;
+
+  modal({
+    title: edit ? "Editar lançamento" : `Nova cobrança — ${p.name}`,
+    content: h("div", {}, [
+      h("div", { class: "field" }, [h("label", {}, "Descrição"), descI]),
+      h("div", { class: "form-row w-2" }, [
+        h("div", { class: "field" }, [h("label", {}, "Valor (R$)"), amountI]),
+        h("div", { class: "field" }, [h("label", {}, "Vencimento"), dateI]),
+      ]),
+      h("div", { class: "form-row w-2" }, [
+        h("div", { class: "field" }, [h("label", {}, "Tipo"), kindSel]),
+        h("div", { class: "field" }, [h("label", {}, "Categoria"), catI]),
+      ]),
+      h("label", { class: "choice" }, [paidChk, h("span", {}, "Já pago / recebido")]),
+    ]),
+    actions: [
+      { label: "Cancelar", class: "btn-ghost" },
+      { label: edit ? "Salvar" : "Lançar", class: "btn", onClick: async (close) => {
+        const data = {
+          kind: kindSel.value, description: descI.value.trim(),
+          amount: parseFloat(amountI.value) || 0, category: catI.value.trim(),
+          due_date: dateI.value, paid: paidChk.checked, patient_id: patientId,
+        };
+        if (!data.amount) { toast("Informe o valor.", "err"); return; }
+        if (!data.due_date) { toast("Informe o vencimento.", "err"); return; }
+        try { if (edit) await api.updateFinance(entry.id, data); else await api.createFinance(data); close(); toast(edit ? "Lançamento salvo." : "Cobrança lançada.", "ok"); reload(); }
+        catch (e) { toast(e.message, "err"); }
+      } },
+    ],
+  });
 }
 
 function infoLine(label, value) {

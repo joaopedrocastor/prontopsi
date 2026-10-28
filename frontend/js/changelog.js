@@ -2,6 +2,12 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.2.0": [
+    "Novo módulo Financeiro: receitas e despesas, saldo do mês, contas vencidas, análise por categoria e lançamentos recorrentes.",
+    "Financeiro por cliente na ficha: lance cobranças, marque como pago e veja o que está em aberto.",
+    "Prontuário: registre a evolução de cada sessão e acompanhe o histórico clínico (na ficha e na Agenda).",
+    "Nova identidade visual: logo, ícone e cores em tom terracota, combinando com a sua marca.",
+  ],
   "1.1.6": [
     "Nova identidade visual: logo e ícone do ProntoPsi atualizados.",
   ],

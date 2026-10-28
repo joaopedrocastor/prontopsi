@@ -278,6 +278,8 @@ async function openEditor(id, presetStart, reload) {
     h("option", { value: s }, statusLabel(s))));
   statusSel.value = appt ? appt.status : "agendada";
   const notesI = h("textarea", { rows: "2", placeholder: "Observações" }, appt ? (appt.notes || "") : "");
+  // Evolução clínica: só ao editar uma sessão já existente (vai pro prontuário).
+  const evoI = id ? h("textarea", { rows: "4", placeholder: "Evolução clínica da sessão (relato, observações, encaminhamentos)..." }, appt ? (appt.evolution || "") : "") : null;
 
   const content = h("div", {}, [
     h("div", { class: "field" }, [h("label", {}, "Paciente"), patSel]),
@@ -292,6 +294,7 @@ async function openEditor(id, presetStart, reload) {
       h("div", { class: "field" }, [h("label", {}, "Status"), statusSel]),
     ]),
     h("div", { class: "field" }, [h("label", {}, "Observações"), notesI]),
+    evoI ? h("div", { class: "field" }, [h("label", {}, "📖 Evolução (prontuário)"), evoI]) : null,
   ]);
 
   const actions = [];
@@ -318,6 +321,7 @@ async function openEditor(id, presetStart, reload) {
         status: statusSel.value,
         notes: notesI.value.trim() || null,
       };
+      if (evoI) data.evolution = evoI.value;
       try {
         if (id) await api.updateAppointment(id, data); else await api.createAppointment(data);
         close(); toast("Agendamento salvo.", "ok"); reload();

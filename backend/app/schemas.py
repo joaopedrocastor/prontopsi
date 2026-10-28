@@ -57,6 +57,7 @@ class AppointmentIn(BaseModel):
     modality: str | None = None
     color: str | None = None
     notes: str | None = None
+    evolution: str | None = None
 
 
 class AppointmentUpdate(BaseModel):
@@ -68,6 +69,7 @@ class AppointmentUpdate(BaseModel):
     modality: str | None = None
     color: str | None = None
     notes: str | None = None
+    evolution: str | None = None
 
 
 class AppointmentOut(BaseModel):
@@ -83,8 +85,75 @@ class AppointmentOut(BaseModel):
     modality: str | None = None
     color: str | None = None
     notes: str | None = None
+    evolution: str | None = None
     created_at: str
     updated_at: str
+
+
+# ---------- Finance (financeiro) ----------
+class FinanceEntryIn(BaseModel):
+    kind: str = "receita"               # 'receita' | 'despesa'
+    description: str = ""
+    category: str = ""
+    amount: float = 0.0                 # em reais (a API converte para centavos)
+    currency: str = "BRL"
+    due_date: str                       # 'YYYY-MM-DD'
+    paid: bool = False
+    paid_date: str | None = None
+    recurrence: str = "nenhuma"
+    patient_id: str | None = None
+    notes: str | None = None
+
+
+class FinanceEntryUpdate(BaseModel):
+    kind: str | None = None
+    description: str | None = None
+    category: str | None = None
+    amount: float | None = None
+    currency: str | None = None
+    due_date: str | None = None
+    paid: bool | None = None
+    paid_date: str | None = None
+    recurrence: str | None = None
+    patient_id: str | None = None
+    notes: str | None = None
+
+
+class FinanceEntryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    kind: str
+    description: str
+    category: str
+    amount: float                       # em reais
+    currency: str
+    due_date: str
+    paid: bool
+    paid_date: str | None = None
+    recurrence: str
+    patient_id: str | None = None
+    patient_name: str = ""
+    notes: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class FinanceTotals(BaseModel):
+    """Totais do periodo, em reais."""
+
+    income_received: float = 0.0        # receitas pagas
+    income_pending: float = 0.0         # receitas a receber
+    expense_paid: float = 0.0           # despesas pagas
+    expense_open: float = 0.0           # despesas em aberto
+    overdue: float = 0.0                # vencidas (nao pagas, antes de hoje)
+    forecast: float = 0.0               # saldo projetado (receitas - despesas)
+    balance: float = 0.0                # saldo realizado (pagas)
+
+
+class CategoryTotal(BaseModel):
+    category: str
+    total: float
 
 
 # ---------- Patient ----------

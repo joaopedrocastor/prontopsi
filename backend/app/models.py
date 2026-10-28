@@ -132,7 +132,41 @@ class Appointment(Base):
     modality: Mapped[str | None] = mapped_column(String(20), nullable=True)  # presencial|online
     color: Mapped[str | None] = mapped_column(String(9), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Evolucao clinica da sessao (prontuario). Preenchida apos a sessao.
+    evolution: Mapped[str | None] = mapped_column(Text, nullable=True)
     google_event_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+
+    created_at: Mapped[str] = mapped_column(String(30), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), default=now_iso, onupdate=now_iso)
+
+    patient: Mapped["Patient | None"] = relationship()
+
+
+class FinanceEntry(Base):
+    """Lancamento financeiro (receita ou despesa).
+
+    Valor guardado em centavos (inteiro) para evitar erro de ponto flutuante.
+    `due_date` e a data de competencia/vencimento (YYYY-MM-DD). Pode estar
+    opcionalmente ligado a um paciente (ex.: cobranca de sessao).
+    """
+
+    __tablename__ = "finance_entries"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    kind: Mapped[str] = mapped_column(String(10), default="receita")  # 'receita' | 'despesa'
+    description: Mapped[str] = mapped_column(String(200), default="")
+    category: Mapped[str] = mapped_column(String(60), default="")  # tag livre
+    amount_cents: Mapped[int] = mapped_column(Integer, default=0)
+    currency: Mapped[str] = mapped_column(String(3), default="BRL")
+    due_date: Mapped[str] = mapped_column(String(10))  # ISO 'YYYY-MM-DD'
+    paid: Mapped[bool] = mapped_column(Boolean, default=False)
+    paid_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # 'nenhuma' | 'semanal' | 'mensal' | 'anual'
+    recurrence: Mapped[str] = mapped_column(String(10), default="nenhuma")
+    patient_id: Mapped[str | None] = mapped_column(
+        ForeignKey("patients.id", ondelete="SET NULL"), nullable=True
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[str] = mapped_column(String(30), default=now_iso)
     updated_at: Mapped[str] = mapped_column(String(30), default=now_iso, onupdate=now_iso)

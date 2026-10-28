@@ -75,6 +75,20 @@ export const api = {
   updateAppointment: (id, data) => req("PATCH", `/api/appointments/${id}`, data),
   deleteAppointment: (id) => req("DELETE", `/api/appointments/${id}`),
 
+  // financeiro
+  listFinance: (params = {}) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v != null && v !== "") q.set(k, v);
+    const qs = q.toString();
+    return req("GET", "/api/finance/entries" + (qs ? `?${qs}` : ""));
+  },
+  financeTotals: (start, end) => req("GET", `/api/finance/totals?start=${start}&end=${end}`),
+  financeByCategory: (kind, start, end) => req("GET", `/api/finance/by-category?kind=${kind}&start=${start}&end=${end}`),
+  financeCategories: () => req("GET", "/api/finance/categories"),
+  createFinance: (data) => req("POST", "/api/finance/entries", data),
+  updateFinance: (id, data) => req("PATCH", `/api/finance/entries/${id}`, data),
+  deleteFinance: (id) => req("DELETE", `/api/finance/entries/${id}`),
+
   // google agenda
   googleStatus: () => req("GET", "/api/google/status"),
   googleSaveConfig: (data) => req("PUT", "/api/google/config", data),

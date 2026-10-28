@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import APP_VERSION, FRONTEND_DIR
 from .db_init import ensure_schema
 from .routers import (
-    anamnesis, appointments, client, google, meta, patients, settings, system,
+    anamnesis, appointments, client, finance, google, meta, patients, settings, system,
 )
 
 
@@ -40,6 +40,7 @@ def create_app() -> FastAPI:
     app.include_router(client.router)
     app.include_router(anamnesis.router)
     app.include_router(appointments.router)
+    app.include_router(finance.router)
     app.include_router(google.router)
     app.include_router(system.router)
 

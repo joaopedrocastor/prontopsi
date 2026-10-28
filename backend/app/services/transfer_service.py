@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from ..config import get_assets_dir, get_data_dir
 from ..form_schema import FORM_VERSION
-from ..models import Anamnesis, Appointment, ClientNote, Document, Patient, Settings
+from ..models import Anamnesis, Appointment, ClientNote, Document, FinanceEntry, Patient, Settings
 from ..utils import now_iso
 from . import pdf_service, settings_service
 
@@ -30,6 +30,7 @@ def export_dict(db: Session) -> dict:
     appointments = db.scalars(select(Appointment).order_by(Appointment.created_at)).all()
     notes = db.scalars(select(ClientNote).order_by(ClientNote.created_at)).all()
     documents = db.scalars(select(Document).order_by(Document.created_at)).all()
+    finance = db.scalars(select(FinanceEntry).order_by(FinanceEntry.created_at)).all()
 
     return {
         "app": "AnamneseInfantil",
@@ -89,6 +90,7 @@ def export_dict(db: Session) -> dict:
                 "modality": ap.modality,
                 "color": ap.color,
                 "notes": ap.notes,
+                "evolution": ap.evolution,
                 "created_at": ap.created_at,
                 "updated_at": ap.updated_at,
             }
@@ -101,6 +103,17 @@ def export_dict(db: Session) -> dict:
                 "created_at": d.created_at, "updated_at": d.updated_at,
             }
             for d in documents
+        ],
+        "finance_entries": [
+            {
+                "id": f.id, "kind": f.kind, "description": f.description,
+                "category": f.category, "amount_cents": f.amount_cents,
+                "currency": f.currency, "due_date": f.due_date, "paid": f.paid,
+                "paid_date": f.paid_date, "recurrence": f.recurrence,
+                "patient_id": f.patient_id, "notes": f.notes,
+                "created_at": f.created_at, "updated_at": f.updated_at,
+            }
+            for f in finance
         ],
     }
 
@@ -206,6 +219,7 @@ def import_dict(db: Session, payload: dict) -> dict:
         obj.modality = ap.get("modality")
         obj.color = ap.get("color")
         obj.notes = ap.get("notes")
+        obj.evolution = ap.get("evolution")
         if ap.get("created_at"):
             obj.created_at = ap["created_at"]
         db.merge(obj)
@@ -222,6 +236,24 @@ def import_dict(db: Session, payload: dict) -> dict:
             obj.created_at = d["created_at"]
         db.merge(obj)
         stats["documents"] = stats.get("documents", 0) + 1
+
+    for f in payload.get("finance_entries", []):
+        obj = db.get(FinanceEntry, f["id"]) or FinanceEntry(id=f["id"])
+        obj.kind = f.get("kind", "receita")
+        obj.description = f.get("description", "")
+        obj.category = f.get("category", "")
+        obj.amount_cents = f.get("amount_cents", 0)
+        obj.currency = f.get("currency", "BRL")
+        obj.due_date = f.get("due_date")
+        obj.paid = bool(f.get("paid"))
+        obj.paid_date = f.get("paid_date")
+        obj.recurrence = f.get("recurrence", "nenhuma")
+        obj.patient_id = f.get("patient_id")
+        obj.notes = f.get("notes")
+        if f.get("created_at"):
+            obj.created_at = f["created_at"]
+        db.merge(obj)
+        stats["finance_entries"] = stats.get("finance_entries", 0) + 1
 
     db.commit()
     return stats
