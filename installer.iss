@@ -32,7 +32,14 @@ UninstallDisplayIcon={app}\{#AppExe}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-PrivilegesRequiredOverridesAllowed=dialog
+; Instalacao por usuario: nao pede permissao de admin (UAC) -> permite o
+; auto-update silencioso do app sem nenhum popup.
+PrivilegesRequired=lowest
+; Mutex do app em execucao: no update silencioso o instalador aguarda/fecha
+; o ProntoPsi antes de substituir o .exe (ver APP_MUTEX em run.py).
+AppMutex=ProntoPsi_SingleInstance_Mutex
+CloseApplications=yes
+RestartApplications=no
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"

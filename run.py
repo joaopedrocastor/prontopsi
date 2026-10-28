@@ -6,13 +6,21 @@ icone e a janela abre. O mesmo backend/mesma interface vao para a nuvem depois.
 """
 from __future__ import annotations
 
+import os
+import shutil
 import socket
+import subprocess
 import sys
+import tempfile
 import threading
 import time
 import webbrowser
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
+
+# Nome do mutex que o instalador (Inno Setup, AppMutex) usa para detectar e
+# fechar o app antes de substituir o .exe durante o auto-update.
+APP_MUTEX = "ProntoPsi_SingleInstance_Mutex"
 
 # Garante que a raiz do projeto esteja no path (dev e empacotado).
 ROOT = Path(__file__).resolve().parent
@@ -102,8 +110,67 @@ class Bridge:
         except Exception:
             return False
 
+    def install_update(self, url):
+        """Baixa o instalador da nova versão e o executa em modo silencioso,
+        reabrindo o app no fim. Só funciona no aplicativo instalado (empacotado).
+
+        O instalador (Inno Setup, per-user) roda sem pedir permissão de admin e,
+        via AppMutex, aguarda este app fechar antes de substituir o .exe. Os
+        dados ficam em %LOCALAPPDATA% e não são tocados.
+        """
+        if not getattr(sys, "frozen", False):
+            return {"ok": False, "error": "Disponível apenas no aplicativo instalado."}
+        if not url:
+            return {"ok": False, "error": "Link da atualização indisponível."}
+        try:
+            tmp = Path(tempfile.gettempdir()) / "ProntoPsi-Update"
+            tmp.mkdir(parents=True, exist_ok=True)
+            dest = tmp / "ProntoPsi-Setup.exe"
+            req = Request(url, headers={"User-Agent": "ProntoPsi"})
+            with urlopen(req, timeout=180) as resp, open(dest, "wb") as fh:
+                shutil.copyfileobj(resp, fh)
+        except Exception as exc:
+            return {"ok": False, "error": f"Falha ao baixar a atualização: {exc}"}
+
+        exe = sys.executable
+        app_dir = str(Path(exe).parent)
+        # Instala silencioso na MESMA pasta e reabre o app no fim.
+        cmd = (f'"{dest}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NOCANCEL '
+               f'/DIR="{app_dir}" & start "" "{exe}"')
+        try:
+            DETACHED = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+            subprocess.Popen(["cmd", "/c", cmd], creationflags=DETACHED, close_fds=True)
+        except Exception as exc:
+            return {"ok": False, "error": f"Falha ao iniciar a instalação: {exc}"}
+
+        # Fecha o app para liberar o .exe (o instalador espera via AppMutex).
+        def _close():
+            time.sleep(1.2)
+            try:
+                webview.windows[0].destroy()
+            except Exception:
+                pass
+            os._exit(0)
+
+        threading.Thread(target=_close, daemon=True).start()
+        return {"ok": True}
+
+
+def _create_mutex() -> None:
+    """Cria o mutex nomeado que o instalador usa para fechar o app no update."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        # Mantém o handle vivo pela duração do processo (não fechar).
+        global _MUTEX_HANDLE
+        _MUTEX_HANDLE = ctypes.windll.kernel32.CreateMutexW(None, False, APP_MUTEX)
+    except Exception:
+        pass
+
 
 def main() -> None:
+    _create_mutex()
     port = _free_port()
     threading.Thread(target=_run_server, args=(port,), daemon=True).start()
     if not _wait_ready(port):

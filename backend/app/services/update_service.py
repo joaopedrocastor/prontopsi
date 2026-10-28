@@ -37,6 +37,8 @@ def check_update(timeout: float = 6.0) -> dict:
         "latest": None,
         "update_available": False,
         "url": f"https://github.com/{RELEASES_REPO}/releases",
+        "asset_url": None,   # link direto do instalador .exe (auto-update)
+        "asset_name": None,
         "notes": "",
     }
     url = f"https://api.github.com/repos/{RELEASES_REPO}/releases/latest"
@@ -54,5 +56,12 @@ def check_update(timeout: float = 6.0) -> dict:
     result["notes"] = data.get("body") or ""
     if data.get("html_url"):
         result["url"] = data["html_url"]
+    # Link direto do instalador (.exe) para o auto-update baixar sozinho.
+    for asset in data.get("assets") or []:
+        name = asset.get("name") or ""
+        if name.lower().endswith(".exe") and asset.get("browser_download_url"):
+            result["asset_url"] = asset["browser_download_url"]
+            result["asset_name"] = name
+            break
     result["update_available"] = bool(tag) and _is_newer(tag, APP_VERSION)
     return result

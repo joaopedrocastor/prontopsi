@@ -2,6 +2,10 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.4.0": [
+    "Atualização em 1 clique: ao surgir uma versão nova, o app baixa, instala e reabre sozinho — sem precisar baixar nada pelo navegador.",
+    "Instalação por usuário (sem pedir permissão de administrador nas próximas atualizações).",
+  ],
   "1.3.0": [
     "Novo: Relatórios com gráficos — receita x despesa por mês, sessões realizadas, situação das sessões e dos clientes.",
     "Indicadores do período: recebido, despesas, saldo, a receber, sessões e clientes ativos.",
