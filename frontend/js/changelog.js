@@ -5,6 +5,10 @@ export const CHANGELOG = {
   "1.4.0": [
     "Atualização em 1 clique: ao surgir uma versão nova, o app baixa, instala e reabre sozinho — sem precisar baixar nada pelo navegador.",
     "Instalação por usuário (sem pedir permissão de administrador nas próximas atualizações).",
+    "Documentos em PDF: recibo de pagamento e declaração de comparecimento, com sua logo e CRP.",
+    "Lembrete de consulta por WhatsApp em 1 clique (mensagem pronta), na Agenda e nas sessões.",
+    "Responsáveis do cliente (mãe, pai, escola) na ficha — o lembrete usa o telefone do responsável principal.",
+    "Valor da sessão por cliente + cobrança automática quando a sessão é marcada como realizada.",
   ],
   "1.3.0": [
     "Novo: Relatórios com gráficos — receita x despesa por mês, sessões realizadas, situação das sessões e dos clientes.",
