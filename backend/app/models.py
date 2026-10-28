@@ -69,10 +69,17 @@ class Patient(Base):
     # Situação do cliente: ativo | espera | alta | desativado | desistente
     status: Mapped[str] = mapped_column(String(20), default="ativo")
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Valor padrao da sessao deste cliente, em centavos (0 = nao definido).
+    # Usado na cobranca automatica quando a sessao e marcada como realizada.
+    session_price_cents: Mapped[int] = mapped_column(Integer, default=0)
 
     created_at: Mapped[str] = mapped_column(String(30), default=now_iso)
     updated_at: Mapped[str] = mapped_column(String(30), default=now_iso, onupdate=now_iso)
 
+    guardians: Mapped[list["Guardian"]] = relationship(
+        back_populates="patient", cascade="all, delete-orphan",
+        order_by="Guardian.is_primary.desc()",
+    )
     anamneses: Mapped[list["Anamnesis"]] = relationship(
         back_populates="patient",
         cascade="all, delete-orphan",
@@ -166,12 +173,37 @@ class FinanceEntry(Base):
     patient_id: Mapped[str | None] = mapped_column(
         ForeignKey("patients.id", ondelete="SET NULL"), nullable=True
     )
+    # Sessao que originou esta cobranca (evita cobrar a mesma sessao duas vezes).
+    appointment_id: Mapped[str | None] = mapped_column(
+        ForeignKey("appointments.id", ondelete="SET NULL"), nullable=True
+    )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[str] = mapped_column(String(30), default=now_iso)
     updated_at: Mapped[str] = mapped_column(String(30), default=now_iso, onupdate=now_iso)
 
     patient: Mapped["Patient | None"] = relationship()
+
+
+class Guardian(Base):
+    """Responsavel pelo cliente (mae/pai/avo/escola). Importante no infantil."""
+
+    __tablename__ = "guardians"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    patient_id: Mapped[str] = mapped_column(ForeignKey("patients.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(200), default="")
+    kinship: Mapped[str | None] = mapped_column(String(60), nullable=True)  # parentesco
+    phone: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    cpf: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    is_primary: Mapped[bool] = mapped_column(Boolean, default=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[str] = mapped_column(String(30), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), default=now_iso, onupdate=now_iso)
+
+    patient: Mapped["Patient"] = relationship(back_populates="guardians")
 
 
 class ClientNote(Base):

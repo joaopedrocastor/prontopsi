@@ -58,6 +58,7 @@ def create_patient(db: Session, data: dict) -> Patient:
         email=(data.get("email") or None),
         status=(data.get("status") or "ativo"),
         notes=(data.get("notes") or None),
+        session_price_cents=int(round((data.get("session_price") or 0) * 100)),
     )
     db.add(patient)
     db.commit()
@@ -76,6 +77,8 @@ def update_patient(db: Session, patient_id: str, data: dict) -> Patient | None:
     patient.email = data.get("email") or None
     patient.status = data.get("status") or "ativo"
     patient.notes = data.get("notes") or None
+    if "session_price" in data:
+        patient.session_price_cents = int(round((data.get("session_price") or 0) * 100))
     db.commit()
     db.refresh(patient)
     return patient
@@ -90,6 +93,15 @@ def delete_patient(db: Session, patient_id: str) -> bool:
     return True
 
 
+def _primary_guardian_phone(p: Patient) -> str:
+    try:
+        prim = (next((g for g in p.guardians if g.is_primary and g.phone), None)
+                or next((g for g in p.guardians if g.phone), None))
+        return (prim.phone if prim else "") or ""
+    except Exception:
+        return ""
+
+
 def _to_dict(p: Patient, anamneses_count: int) -> dict:
     return {
         "id": p.id,
@@ -100,8 +112,10 @@ def _to_dict(p: Patient, anamneses_count: int) -> dict:
         "email": p.email,
         "status": p.status or "ativo",
         "notes": p.notes,
+        "session_price": round((p.session_price_cents or 0) / 100, 2),
         "created_at": p.created_at,
         "updated_at": p.updated_at,
         "age": calcular_idade(p.birth_date),
         "anamneses_count": anamneses_count,
+        "guardian_phone": _primary_guardian_phone(p),
     }

@@ -1,7 +1,9 @@
 // Agenda: visualizações Mês / Semana / Dia, com criação e edição de sessões.
 
 import { api } from "../api.js";
+import { store } from "../store.js";
 import { h, clear, toast, confirmar, modal } from "../util.js";
+import { lembreteWhatsApp } from "../whatsapp.js";
 
 const DOW = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const DOW_S = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -298,6 +300,17 @@ async function openEditor(id, presetStart, reload) {
   ]);
 
   const actions = [];
+  // Lembrete por WhatsApp (sessão existente com paciente que tem telefone).
+  const pData = appt && appt.patient_id ? patients.find((p) => p.id === appt.patient_id) : null;
+  const waPhone = (pData && (pData.guardian_phone || pData.phones)) || "";
+  if (pData && waPhone) actions.push({
+    label: "📲 WhatsApp", class: "btn-ghost",
+    onClick: () => lembreteWhatsApp({
+      phone: waPhone, nome: pData.name,
+      data: `${pad(start.getDate())}/${pad(start.getMonth() + 1)}/${start.getFullYear()}`,
+      hora: startI.value, profissional: (store.settings && store.settings.professional_name) || "",
+    }),
+  });
   if (id) actions.push({
     label: "🗑 Excluir", class: "btn-danger",
     onClick: async (close) => {

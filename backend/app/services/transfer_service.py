@@ -16,7 +16,9 @@ from sqlalchemy.orm import Session
 
 from ..config import get_assets_dir, get_data_dir
 from ..form_schema import FORM_VERSION
-from ..models import Anamnesis, Appointment, ClientNote, Document, FinanceEntry, Patient, Settings
+from ..models import (
+    Anamnesis, Appointment, ClientNote, Document, FinanceEntry, Guardian, Patient, Settings,
+)
 from ..utils import now_iso
 from . import pdf_service, settings_service
 
@@ -31,6 +33,7 @@ def export_dict(db: Session) -> dict:
     notes = db.scalars(select(ClientNote).order_by(ClientNote.created_at)).all()
     documents = db.scalars(select(Document).order_by(Document.created_at)).all()
     finance = db.scalars(select(FinanceEntry).order_by(FinanceEntry.created_at)).all()
+    guardians = db.scalars(select(Guardian).order_by(Guardian.created_at)).all()
 
     return {
         "app": "AnamneseInfantil",
@@ -54,10 +57,20 @@ def export_dict(db: Session) -> dict:
                 "email": p.email,
                 "status": p.status,
                 "notes": p.notes,
+                "session_price_cents": p.session_price_cents,
                 "created_at": p.created_at,
                 "updated_at": p.updated_at,
             }
             for p in patients
+        ],
+        "guardians": [
+            {
+                "id": g.id, "patient_id": g.patient_id, "name": g.name,
+                "kinship": g.kinship, "phone": g.phone, "email": g.email,
+                "cpf": g.cpf, "is_primary": g.is_primary, "notes": g.notes,
+                "created_at": g.created_at, "updated_at": g.updated_at,
+            }
+            for g in guardians
         ],
         "client_notes": [
             {
@@ -110,7 +123,8 @@ def export_dict(db: Session) -> dict:
                 "category": f.category, "amount_cents": f.amount_cents,
                 "currency": f.currency, "due_date": f.due_date, "paid": f.paid,
                 "paid_date": f.paid_date, "recurrence": f.recurrence,
-                "patient_id": f.patient_id, "notes": f.notes,
+                "patient_id": f.patient_id, "appointment_id": f.appointment_id,
+                "notes": f.notes,
                 "created_at": f.created_at, "updated_at": f.updated_at,
             }
             for f in finance
@@ -182,10 +196,26 @@ def import_dict(db: Session, payload: dict) -> dict:
         obj.email = p.get("email")
         obj.status = p.get("status", "ativo")
         obj.notes = p.get("notes")
+        obj.session_price_cents = p.get("session_price_cents", 0)
         if p.get("created_at"):
             obj.created_at = p["created_at"]
         db.merge(obj)
         stats["patients"] += 1
+
+    for g in payload.get("guardians", []):
+        obj = db.get(Guardian, g["id"]) or Guardian(id=g["id"])
+        obj.patient_id = g["patient_id"]
+        obj.name = g.get("name", "")
+        obj.kinship = g.get("kinship")
+        obj.phone = g.get("phone")
+        obj.email = g.get("email")
+        obj.cpf = g.get("cpf")
+        obj.is_primary = bool(g.get("is_primary"))
+        obj.notes = g.get("notes")
+        if g.get("created_at"):
+            obj.created_at = g["created_at"]
+        db.merge(obj)
+        stats["guardians"] = stats.get("guardians", 0) + 1
 
     for n in payload.get("client_notes", []):
         obj = db.get(ClientNote, n["id"]) or ClientNote(id=n["id"])
@@ -249,6 +279,7 @@ def import_dict(db: Session, payload: dict) -> dict:
         obj.paid_date = f.get("paid_date")
         obj.recurrence = f.get("recurrence", "nenhuma")
         obj.patient_id = f.get("patient_id")
+        obj.appointment_id = f.get("appointment_id")
         obj.notes = f.get("notes")
         if f.get("created_at"):
             obj.created_at = f["created_at"]

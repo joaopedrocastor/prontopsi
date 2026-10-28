@@ -102,6 +102,7 @@ class FinanceEntryIn(BaseModel):
     paid_date: str | None = None
     recurrence: str = "nenhuma"
     patient_id: str | None = None
+    appointment_id: str | None = None
     notes: str | None = None
 
 
@@ -116,6 +117,7 @@ class FinanceEntryUpdate(BaseModel):
     paid_date: str | None = None
     recurrence: str | None = None
     patient_id: str | None = None
+    appointment_id: str | None = None
     notes: str | None = None
 
 
@@ -134,6 +136,7 @@ class FinanceEntryOut(BaseModel):
     recurrence: str
     patient_id: str | None = None
     patient_name: str = ""
+    appointment_id: str | None = None
     notes: str | None = None
     created_at: str
     updated_at: str
@@ -165,6 +168,7 @@ class PatientIn(BaseModel):
     email: str | None = None
     status: str = "ativo"
     notes: str | None = None
+    session_price: float = 0.0  # valor padrão da sessão, em reais
 
 
 class PatientOut(BaseModel):
@@ -178,10 +182,39 @@ class PatientOut(BaseModel):
     email: str | None = None
     status: str = "ativo"
     notes: str | None = None
+    session_price: float = 0.0
     created_at: str
     updated_at: str
     age: str = ""
     anamneses_count: int = 0
+    guardian_phone: str = ""   # telefone do responsável principal (lembrete WhatsApp)
+
+
+# ---------- Responsáveis (guardians) ----------
+class GuardianIn(BaseModel):
+    name: str = ""
+    kinship: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    cpf: str | None = None
+    is_primary: bool = False
+    notes: str | None = None
+
+
+class GuardianOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    patient_id: str
+    name: str
+    kinship: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    cpf: str | None = None
+    is_primary: bool = False
+    notes: str | None = None
+    created_at: str
+    updated_at: str
 
 
 # ---------- Timeline de anotações ----------

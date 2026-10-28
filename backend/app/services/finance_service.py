@@ -15,7 +15,7 @@ from ..models import FinanceEntry, Patient
 
 _FIELDS = (
     "kind", "description", "category", "currency", "due_date",
-    "paid", "paid_date", "recurrence", "notes",
+    "paid", "paid_date", "recurrence", "notes", "appointment_id",
 )
 
 
@@ -41,6 +41,7 @@ def _to_dict(e: FinanceEntry, patient_name: str | None = None) -> dict:
         "recurrence": e.recurrence or "nenhuma",
         "patient_id": e.patient_id,
         "patient_name": patient_name if patient_name is not None else (e.patient.name if e.patient else ""),
+        "appointment_id": e.appointment_id,
         "notes": e.notes,
         "created_at": e.created_at,
         "updated_at": e.updated_at,
@@ -90,7 +91,39 @@ def create_entry(db: Session, data: dict) -> dict:
         paid_date=data.get("paid_date") or (date.today().isoformat() if data.get("paid") else None),
         recurrence=data.get("recurrence") or "nenhuma",
         patient_id=data.get("patient_id") or None,
+        appointment_id=data.get("appointment_id") or None,
         notes=data.get("notes"),
+    )
+    db.add(e)
+    db.commit()
+    db.refresh(e)
+    return _to_dict(e)
+
+
+def charge_exists_for_appointment(db: Session, appointment_id: str) -> bool:
+    """Já existe cobrança vinculada a esta sessão?"""
+    n = db.execute(
+        select(func.count(FinanceEntry.id)).where(FinanceEntry.appointment_id == appointment_id)
+    ).scalar_one()
+    return n > 0
+
+
+def create_session_charge(db: Session, patient, appointment) -> dict | None:
+    """Gera a cobrança (receita) de uma sessão realizada, se o cliente tem valor
+    padrão e ainda não houver cobrança para a sessão. Retorna o lançamento ou None."""
+    if not patient or (patient.session_price_cents or 0) <= 0:
+        return None
+    if charge_exists_for_appointment(db, appointment.id):
+        return None
+    e = FinanceEntry(
+        kind="receita",
+        description="Sessão de " + (patient.name or "atendimento"),
+        category="Consultas",
+        amount_cents=patient.session_price_cents,
+        due_date=(appointment.start_at or "")[:10],
+        paid=False,
+        patient_id=patient.id,
+        appointment_id=appointment.id,
     )
     db.add(e)
     db.commit()

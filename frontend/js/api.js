@@ -45,6 +45,12 @@ export const api = {
   updatePatient: (id, data) => req("PUT", `/api/patients/${id}`, data),
   deletePatient: (id) => req("DELETE", `/api/patients/${id}`),
 
+  // responsáveis (guardians)
+  listGuardians: (patientId) => req("GET", `/api/patients/${patientId}/guardians`),
+  createGuardian: (patientId, data) => req("POST", `/api/patients/${patientId}/guardians`, data),
+  updateGuardian: (id, data) => req("PATCH", `/api/guardians/${id}`, data),
+  deleteGuardian: (id) => req("DELETE", `/api/guardians/${id}`),
+
   // client timeline + documents
   listNotes: (patientId) => req("GET", `/api/patients/${patientId}/notes`),
   createNote: (patientId, data) => req("POST", `/api/patients/${patientId}/notes`, data),
@@ -91,6 +97,10 @@ export const api = {
 
   // relatórios
   reportsOverview: (months = 6) => req("GET", `/api/reports/overview?months=${months}`),
+
+  // documentos em PDF (recibo, declaração) — retornam a Response (blob)
+  reciboPdf: (data) => req("POST", "/api/doc-pdf/recibo", data),
+  declaracaoPdf: (data) => req("POST", "/api/doc-pdf/declaracao", data),
 
   // google agenda
   googleStatus: () => req("GET", "/api/google/status"),

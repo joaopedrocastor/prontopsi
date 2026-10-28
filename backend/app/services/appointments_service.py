@@ -18,6 +18,19 @@ def _sync_google(db: Session, appt: Appointment) -> None:
         pass
 
 
+def _maybe_charge(db: Session, appt: Appointment) -> None:
+    """Sessão marcada como realizada gera a cobrança do cliente (se tiver valor
+    padrão e ainda não houver cobrança). Best-effort, nunca quebra o fluxo."""
+    if appt.status != "realizada" or not appt.patient_id:
+        return
+    try:
+        from . import finance_service
+        patient = db.get(Patient, appt.patient_id)
+        finance_service.create_session_charge(db, patient, appt)
+    except Exception:
+        pass
+
+
 def _delete_google(db: Session, google_event_id: str | None) -> None:
     if not google_event_id:
         return
@@ -103,6 +116,7 @@ def create_appointment(db: Session, data: dict) -> dict:
     db.commit()
     db.refresh(a)
     _sync_google(db, a)
+    _maybe_charge(db, a)
     return _to_dict(a)
 
 
@@ -118,6 +132,7 @@ def update_appointment(db: Session, appointment_id: str, data: dict) -> dict | N
     db.commit()
     db.refresh(a)
     _sync_google(db, a)
+    _maybe_charge(db, a)
     return _to_dict(a)
 
 

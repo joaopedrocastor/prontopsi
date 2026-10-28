@@ -3,6 +3,7 @@
 
 import { api } from "../api.js";
 import { h, clear, toast, modal, confirmar, fmtData } from "../util.js";
+import { gerarRecibo } from "../documents.js";
 
 const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -146,6 +147,7 @@ async function drawLancamentos(body, start, end) {
       h("td", {}, statusBadge(e, venc)),
       h("td", { class: "row-actions" }, [
         h("button", { class: "icon-btn", title: e.paid ? "Marcar como não pago" : "Marcar como pago", onClick: () => togglePago(container, e) }, e.paid ? "↩" : "✓"),
+        e.kind === "receita" ? h("button", { class: "icon-btn", title: "Gerar recibo", onClick: () => gerarRecibo({ patient_id: e.patient_id, payer: e.patient_name, amount: e.amount, reference: e.description || "atendimento psicológico" }) }, "🧾") : null,
         h("button", { class: "icon-btn", title: "Editar", onClick: () => abrirModal(container, e) }, "✎"),
         h("button", { class: "icon-btn", title: "Excluir", onClick: () => excluir(container, e) }, "🗑"),
       ]),

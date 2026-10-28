@@ -2,9 +2,11 @@
 // (Principal + timeline, Cadastro, Anamnese, Sessões, Documentos, Financeiro).
 
 import { api } from "../api.js";
-import { openExternal, baixar } from "../store.js";
+import { store, openExternal, baixar } from "../store.js";
+import { lembreteWhatsApp, primeiroTelefone } from "../whatsapp.js";
 import { h, clear, toast, confirmar, modal, iniciais, fmtData, calcIdade, fmtDataHora } from "../util.js";
 import { exportarFicha } from "./export.js";
+import { gerarRecibo, gerarDeclaracao } from "../documents.js";
 
 // Situações possíveis do cliente (rótulo + cores do badge).
 const STATUS = {
@@ -143,6 +145,7 @@ function buildPatientForm(p) {
   statusSel.value = p.status || "ativo";
   const phonesI = h("input", { type: "text", value: p.phones || "", placeholder: "Telefones de contato" });
   const emailI = h("input", { type: "email", value: p.email || "", placeholder: "email@exemplo.com" });
+  const priceI = h("input", { type: "number", step: "0.01", min: "0", value: p.session_price || "", placeholder: "0,00" });
   const notesI = h("textarea", { rows: "3", placeholder: "Observações" }, p.notes || "");
 
   const node = h("div", {}, [
@@ -161,6 +164,10 @@ function buildPatientForm(p) {
       h("div", { class: "field" }, [h("label", {}, "Telefones"), phonesI]),
       h("div", { class: "field" }, [h("label", {}, "E-mail"), emailI]),
     ]),
+    h("div", { class: "form-row w-2" }, [
+      h("div", { class: "field" }, [h("label", {}, "Valor da sessão (R$)"), priceI, h("div", { class: "hint" }, "Usado na cobrança automática quando a sessão é marcada como realizada.")]),
+      h("div", {}),
+    ]),
     h("div", { class: "field" }, [h("label", {}, "Observações"), notesI]),
   ]);
   const getData = () => ({
@@ -170,6 +177,7 @@ function buildPatientForm(p) {
     status: statusSel.value,
     phones: phonesI.value.trim() || null,
     email: emailI.value.trim() || null,
+    session_price: parseFloat(priceI.value) || 0,
     notes: notesI.value.trim() || null,
   });
   return { node, getData };
@@ -240,7 +248,7 @@ export async function renderPatientDetail(container, id) {
     if (current === "principal") await secPrincipal(content, p);
     else if (current === "cadastro") await secCadastro(content, id, () => renderPatientDetail(container, id));
     else if (current === "anamnese") await secAnamnese(content, id, p);
-    else if (current === "sessoes") await secSessoes(content, id);
+    else if (current === "sessoes") await secSessoes(content, id, p);
     else if (current === "prontuario") await secProntuario(content, id, p);
     else if (current === "documentos") await secDocumentos(content, id);
     else if (current === "financeiro") await secFinanceiro(content, id, p);
@@ -341,6 +349,71 @@ async function secCadastro(content, id, reload) {
       } }, "Salvar alterações"),
     ]),
   ]));
+
+  // Responsáveis (importante no atendimento infantil).
+  const guardWrap = h("div", { style: "margin-top:18px" });
+  content.appendChild(guardWrap);
+  await renderGuardians(guardWrap, id);
+}
+
+// Lista de responsáveis do cliente com adicionar/editar/excluir.
+async function renderGuardians(wrap, patientId) {
+  clear(wrap);
+  wrap.appendChild(h("div", { class: "section-progress" }, [
+    h("h2", { style: "font-size:16px;color:var(--navy);margin:0" }, "Responsáveis"),
+    h("button", { class: "btn btn-sm", onClick: () => guardianModal(patientId, null, () => renderGuardians(wrap, patientId)) }, "＋ Adicionar responsável"),
+  ]));
+  let list = [];
+  try { list = await api.listGuardians(patientId); } catch (e) { toast(e.message, "err"); return; }
+  if (!list.length) {
+    wrap.appendChild(h("div", { class: "muted", style: "font-size:13px;padding:6px 2px" }, "Nenhum responsável cadastrado (ex.: mãe, pai, avó)."));
+    return;
+  }
+  const box = h("div", { class: "list" });
+  wrap.appendChild(box);
+  for (const g of list) {
+    box.appendChild(h("div", { class: "list-item" }, [
+      h("span", { class: "avatar sm" }, iniciais(g.name)),
+      h("div", { class: "li-main" }, [
+        h("div", { class: "li-title" }, [g.name || "(sem nome)", g.is_primary ? h("span", { class: "badge badge-done", style: "margin-left:8px" }, "Principal") : null]),
+        h("div", { class: "li-sub muted" }, [g.kinship || "Responsável", g.phone ? " · " + g.phone : "", g.email ? " · " + g.email : ""].join("")),
+      ]),
+      h("div", { class: "li-actions" }, [
+        g.phone ? h("button", { class: "btn-ghost btn-sm", title: "WhatsApp", onClick: () => lembreteWhatsApp({ phone: g.phone, nome: "", data: "", hora: "", profissional: (store.settings && store.settings.professional_name) || "" }) }, "📲") : null,
+        h("button", { class: "btn-ghost btn-sm", onClick: () => guardianModal(patientId, g, () => renderGuardians(wrap, patientId)) }, "✎"),
+        h("button", { class: "btn-ghost btn-sm", onClick: async () => { if (await confirmar({ title: "Excluir responsável", message: `Excluir ${g.name || "este responsável"}?`, okLabel: "Excluir", danger: true })) { await api.deleteGuardian(g.id); renderGuardians(wrap, patientId); } } }, "🗑"),
+      ]),
+    ]));
+  }
+}
+
+function guardianModal(patientId, g, reload) {
+  const edit = !!g;
+  const nameI = h("input", { type: "text", value: g ? g.name : "", placeholder: "Nome do responsável" });
+  const kinI = h("input", { type: "text", value: g ? (g.kinship || "") : "", placeholder: "Parentesco (mãe, pai, avó...)" });
+  const phoneI = h("input", { type: "text", value: g ? (g.phone || "") : "", placeholder: "Telefone / WhatsApp" });
+  const emailI = h("input", { type: "email", value: g ? (g.email || "") : "", placeholder: "E-mail (opcional)" });
+  const cpfI = h("input", { type: "text", value: g ? (g.cpf || "") : "", placeholder: "CPF (opcional)" });
+  const primI = h("input", { type: "checkbox" }); if (g && g.is_primary) primI.checked = true;
+  const field = (l, c) => h("div", { class: "field" }, [h("label", {}, l), c]);
+  modal({
+    title: edit ? "Editar responsável" : "Novo responsável",
+    content: h("div", {}, [
+      field("Nome", nameI),
+      h("div", { class: "form-row w-2" }, [field("Parentesco", kinI), field("Telefone / WhatsApp", phoneI)]),
+      h("div", { class: "form-row w-2" }, [field("E-mail", emailI), field("CPF", cpfI)]),
+      h("label", { class: "choice" }, [primI, h("span", {}, "Responsável principal (recebe os lembretes)")]),
+    ]),
+    actions: [
+      { label: "Cancelar", class: "btn-ghost" },
+      { label: edit ? "Salvar" : "Adicionar", class: "btn", onClick: async (close) => {
+        const data = { name: nameI.value.trim(), kinship: kinI.value.trim() || null, phone: phoneI.value.trim() || null, email: emailI.value.trim() || null, cpf: cpfI.value.trim() || null, is_primary: primI.checked };
+        if (!data.name) { toast("Informe o nome.", "err"); return; }
+        try { if (edit) await api.updateGuardian(g.id, data); else await api.createGuardian(patientId, data); close(); toast("Responsável salvo.", "ok"); reload(); }
+        catch (e) { toast(e.message, "err"); }
+      } },
+    ],
+  });
 }
 
 // ----- Anamnese (fichas do cliente) -----
@@ -373,7 +446,7 @@ async function secAnamnese(content, id, p) {
 function clearReturn(el) { clear(el); return el; }
 
 // ----- Sessões realizadas -----
-async function secSessoes(content, id) {
+async function secSessoes(content, id, p) {
   content.appendChild(h("h2", { style: "font-size:17px;color:var(--navy);margin:0 0 14px" }, "Sessões"));
   const list = h("div", { class: "list" });
   content.appendChild(list);
@@ -393,6 +466,8 @@ async function secSessoes(content, id) {
       ]),
       h("div", { class: "li-actions" }, [
         h("button", { class: "btn-outline btn-sm", onClick: () => openEvolutionEditor(a, reload) }, temEvo ? "Ver evolução" : "＋ Evolução"),
+        (p && (p.guardian_phone || p.phones)) ? h("button", { class: "btn-ghost btn-sm", title: "Lembrar por WhatsApp", onClick: () => lembreteWhatsApp({ phone: p.guardian_phone || primeiroTelefone(p.phones), nome: p.name, data: fmtData(a.start_at.slice(0, 10)), hora: a.start_at.slice(11, 16), profissional: (store.settings && store.settings.professional_name) || "" }) }, "📲") : null,
+        h("button", { class: "btn-ghost btn-sm", title: "Declaração de comparecimento", onClick: () => gerarDeclaracao({ patient_id: id, name: a.patient_name, when: a.start_at.slice(0, 10), start: a.start_at.slice(11, 16), end: (a.end_at || "").slice(11, 16) }) }, "Declaração"),
         h("button", { class: "btn-ghost btn-sm", onClick: () => (location.hash = "#/agenda") }, "Agenda"),
       ]),
     ]));
@@ -526,6 +601,7 @@ async function secFinanceiro(content, id, p) {
       h("span", { style: `font-weight:700;color:${e.kind === "receita" ? "var(--ok)" : "var(--accent)"}` }, (e.kind === "receita" ? "+ " : "− ") + fmtMoeda(e.amount)),
       h("div", { class: "li-actions" }, [
         h("button", { class: "btn-ghost btn-sm", title: e.paid ? "Marcar não pago" : "Marcar pago", onClick: async () => { try { await api.updateFinance(e.id, { paid: !e.paid }); refresh(); } catch (err) { toast(err.message, "err"); } } }, e.paid ? "↩" : "✓"),
+        e.kind === "receita" ? h("button", { class: "btn-ghost btn-sm", title: "Gerar recibo", onClick: () => gerarRecibo({ patient_id: id, payer: p.name, amount: e.amount, reference: e.description || "atendimento psicológico" }) }, "Recibo") : null,
         h("button", { class: "btn-ghost btn-sm", onClick: () => cobrancaModal(id, p, e, refresh) }, "✎"),
         h("button", { class: "btn-ghost btn-sm", onClick: async () => { if (await confirmar({ title: "Excluir lançamento", message: "Excluir esta cobrança?", okLabel: "Excluir", danger: true })) { await api.deleteFinance(e.id); refresh(); } } }, "🗑"),
       ]),

@@ -8,8 +8,8 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..schemas import DocumentOut, NoteIn, NoteOut
-from ..services import documents_service, notes_service
+from ..schemas import DocumentOut, GuardianIn, GuardianOut, NoteIn, NoteOut
+from ..services import documents_service, guardians_service, notes_service
 
 router = APIRouter(prefix="/api", tags=["client"])
 
@@ -40,6 +40,34 @@ def update_note(note_id: str, payload: NoteIn, db: Session = Depends(get_db)):
 def delete_note(note_id: str, db: Session = Depends(get_db)):
     if not notes_service.delete_note(db, note_id):
         raise HTTPException(status_code=404, detail="Anotação não encontrada.")
+
+
+# ---------- Responsáveis ----------
+@router.get("/patients/{patient_id}/guardians", response_model=list[GuardianOut])
+def list_guardians(patient_id: str, db: Session = Depends(get_db)):
+    return guardians_service.list_guardians(db, patient_id)
+
+
+@router.post("/patients/{patient_id}/guardians", response_model=GuardianOut, status_code=201)
+def create_guardian(patient_id: str, payload: GuardianIn, db: Session = Depends(get_db)):
+    g = guardians_service.create_guardian(db, patient_id, payload.model_dump())
+    if not g:
+        raise HTTPException(status_code=404, detail="Paciente não encontrado.")
+    return g
+
+
+@router.patch("/guardians/{guardian_id}", response_model=GuardianOut)
+def update_guardian(guardian_id: str, payload: GuardianIn, db: Session = Depends(get_db)):
+    g = guardians_service.update_guardian(db, guardian_id, payload.model_dump(exclude_unset=True))
+    if not g:
+        raise HTTPException(status_code=404, detail="Responsável não encontrado.")
+    return g
+
+
+@router.delete("/guardians/{guardian_id}", status_code=204)
+def delete_guardian(guardian_id: str, db: Session = Depends(get_db)):
+    if not guardians_service.delete_guardian(db, guardian_id):
+        raise HTTPException(status_code=404, detail="Responsável não encontrado.")
 
 
 # ---------- Documentos ----------
