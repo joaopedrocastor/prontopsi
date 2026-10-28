@@ -2,6 +2,10 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.3.0": [
+    "Novo: Relatórios com gráficos — receita x despesa por mês, sessões realizadas, situação das sessões e dos clientes.",
+    "Indicadores do período: recebido, despesas, saldo, a receber, sessões e clientes ativos.",
+  ],
   "1.2.0": [
     "Novo módulo Financeiro: receitas e despesas, saldo do mês, contas vencidas, análise por categoria e lançamentos recorrentes.",
     "Financeiro por cliente na ficha: lance cobranças, marque como pago e veja o que está em aberto.",
