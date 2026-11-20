@@ -81,6 +81,15 @@ def test_consultorios_padrao_ate_salvar():
     assert get_offices(novo) == []
 
 
+def test_texto_recibo_sem_identificacao():
+    from backend.app.models import Settings
+    from backend.app.services.document_pdf_service import texto_recibo
+
+    st = Settings(professional_name="", crp="", professional_title="Psicóloga")
+    t = texto_recibo(st, payer="Ana", payer_title="Sra.", amount=10, when_iso="2026-11-20")
+    assert t.startswith("Recebi da Sra. Ana, a quantia de")
+
+
 def test_texto_recibo_plural_e_genero(client):
     from backend.app.database import SessionLocal
     from backend.app.services import settings_service

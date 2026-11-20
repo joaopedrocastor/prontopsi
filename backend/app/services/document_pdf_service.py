@@ -383,9 +383,16 @@ def texto_recibo(settings: Settings, *, payer: str, payer_cpf: str = "",
     crp = (settings.crp or "").strip()
     if crp.upper().startswith("CRP"):
         crp = crp[3:].strip()
-    partes = [f"{nome_prof}, inscrit{'a' if prof_fem else 'o'} no CRP sob o número {crp}"]
+    # Identificação da profissional: só o que estiver configurado.
+    docs = []
+    if crp:
+        docs.append(f"no CRP sob o número {crp}")
     if settings.cpf:
-        partes[0] += f" e no CPF sob o número {settings.cpf.strip()}"
+        docs.append(f"no CPF sob o número {settings.cpf.strip()}")
+    ident = nome_prof
+    if nome_prof and docs:
+        ident += f", inscrit{'a' if prof_fem else 'o'} " + " e ".join(docs)
+    partes = [ident]
     tratamento = (payer_title or "").strip()
     if tratamento == "Sr.":
         quem, insc = f"do Sr. {payer}", "inscrito"
@@ -416,6 +423,8 @@ def texto_recibo(settings: Settings, *, payer: str, payer_cpf: str = "",
     if patient_name:
         artigo = {"F": "a", "M": "o"}.get((patient_sex or "").upper(), "o(a)")
         frase += f" para {artigo} paciente {patient_name}"
+    if not partes[0]:  # sem nome configurado: "Recebi da Sra. ..."
+        return frase[0].upper() + frase[1:] + "."
     return partes[0] + ", " + frase + "."
 
 
