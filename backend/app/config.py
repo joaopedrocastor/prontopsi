@@ -14,7 +14,7 @@ from pathlib import Path
 APP_NAME = "AnamneseInfantil"
 
 # Versão atual do aplicativo (usada na checagem de atualizações).
-APP_VERSION = "1.4.2"
+APP_VERSION = "1.4.3"
 # Repositório público onde ficam os instaladores/releases do ProntoPsi.
 # (Transferido de joaopedrocastor para eleuterioautomacao em 2026-11; versões
 # antigas ainda usam o nome antigo e dependem do redirecionamento do GitHub.)

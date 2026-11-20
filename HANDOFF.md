@@ -2,7 +2,7 @@
 
 Documento de continuidade do projeto. Objetivo: qualquer pessoa (ou uma nova
 sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
-2026-11-20. **Versão atual: 1.4.2.**
+2026-11-20. **Versão atual: 1.4.3.**
 
 > O histórico detalhado, voltado à usuária, fica em `frontend/js/changelog.js`.
 
@@ -51,6 +51,12 @@ sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
   tela de senha, via `logo.js`). `settings_service.resolve_logo_path` usa a
   logo enviada em Configuração se houver; senão a oficial (`logo_has_info`
   = True para ela). "Usar a logo oficial" em Configuração remove a enviada.
+- **1.4.3** — aviso de atualização global (`frontend/js/update.js`): faixa
+  fixa `#update-banner` abaixo do topo, em todas as telas (antes ficava só no
+  Painel). Checa ao abrir e a cada 3 h; botões "Atualizar agora" (ponte
+  pywebview) e "Ver no GitHub" (página da release); se o auto-update falhar,
+  abre o GitHub. Obs.: o aviso só aparece se a tag for **maior** que a versão
+  instalada — nunca republique builds diferentes com o mesmo número.
 
 > **Cache e porta:** o app sobe em **porta aleatória** a cada abertura, então o
 > WebView sempre carrega JS/CSS frescos (sem cache velho após atualizar). No

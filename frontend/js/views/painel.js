@@ -1,8 +1,8 @@
 // Painel inicial: saudação, atalhos, indicadores e alerta de próximas consultas.
 
 import { api } from "../api.js";
-import { store, isConfigured, openExternal, hasBridge } from "../store.js";
-import { h, iniciais, modal, toast } from "../util.js";
+import { store, isConfigured } from "../store.js";
+import { h, iniciais } from "../util.js";
 import { fazerBackup, restaurarBackup, exportarDados, importarDados } from "../systemActions.js";
 
 const DOW = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -24,11 +24,6 @@ function hora(startAt) { const d = new Date(startAt); return `${pad(d.getHours()
 // Monta o painel inicial: saudação, indicadores, próximas consultas e atalhos.
 export async function renderPainel(container) {
   const s = store.settings || {};
-
-  // Aviso de nova versão (aparece só se houver atualização no prontopsi-releases).
-  const updateSlot = h("div", {});
-  container.appendChild(updateSlot);
-  checkUpdate(updateSlot);
 
   container.appendChild(h("div", { class: "hello" }, [
     h("h1", {}, `Olá${s.professional_name ? ", " + s.professional_name.split(" ")[0] : ""}! 👋`),
@@ -124,44 +119,6 @@ async function loadUpcoming(body) {
       h("div", { class: "up-main" }, [h("div", { class: "nm" }, nome), h("div", { class: "meta" }, meta)]),
       h("span", { class: "avatar" }, iniciais(nome)),
     ]));
-  }
-}
-
-// Checa se há versão nova no GitHub e, se houver, mostra a faixa de atualização.
-async function checkUpdate(slot) {
-  let info;
-  try { info = await api.checkUpdate(); } catch { return; }
-  if (!info || !info.update_available) return;
-  // No app instalado (ponte pywebview + link do instalador): atualização em 1 clique.
-  const auto = hasBridge() && window.pywebview.api.install_update && info.asset_url;
-  slot.appendChild(h("div", { class: "notice", style: "margin-bottom:16px;background:#FFF3E6;border-color:#F0801A" }, [
-    h("div", { class: "notice-text" }, [
-      h("strong", { style: "color:var(--accent)" }, `Nova versão disponível (${info.latest}). `),
-      "Você está na " + info.current + ". "
-        + (auto ? "Clique para atualizar — o app baixa, instala e reabre sozinho." : "Baixe a atualização para ter as novidades."),
-    ]),
-    auto
-      ? h("button", { class: "btn-accent", onClick: () => instalarAtualizacao(info) }, "⬇ Atualizar e reiniciar")
-      : h("button", { class: "btn-accent", onClick: () => openExternal(info.url) }, "⬇ Baixar atualização"),
-  ]));
-}
-
-// Dispara o auto-update pela ponte: baixa o instalador, roda silencioso e reabre.
-async function instalarAtualizacao(info) {
-  const close = modal({
-    title: "Atualizando o ProntoPsi",
-    content: h("div", {}, [
-      h("p", {}, `Baixando a versão ${info.latest}…`),
-      h("p", { class: "muted", style: "font-size:13px" }, "O app vai fechar e reabrir sozinho em instantes. Seus dados são preservados."),
-    ]),
-    actions: [],
-  });
-  try {
-    const r = await window.pywebview.api.install_update(info.asset_url);
-    if (!r || !r.ok) { close(); toast((r && r.error) || "Não foi possível atualizar.", "err"); }
-    // Se deu certo, o app fecha sozinho — nada mais a fazer aqui.
-  } catch (e) {
-    close(); toast("Falha na atualização: " + (e.message || e), "err");
   }
 }
 

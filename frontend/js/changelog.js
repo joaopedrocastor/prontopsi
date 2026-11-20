@@ -2,6 +2,11 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.4.3": [
+    "Aviso de atualização em destaque: quando sair uma versão nova, aparece uma faixa no topo de todas as telas com os botões \"Atualizar agora\" e \"Ver no GitHub\".",
+    "O app verifica novas versões ao abrir e a cada 3 horas (mesmo se ficar aberto o dia todo).",
+    "Se a atualização automática falhar, o app abre a página do GitHub para baixar o instalador.",
+  ],
   "1.4.2": [
     "Novo recibo de prestação de serviços psicológicos no padrão do seu modelo: logo, arcos decorativos, número do recibo e rodapé com o endereço do consultório.",
     "O recibo já vem preenchido: responsável (nome, CPF, Sr./Sra.), paciente, valor por extenso, quantidade e dias das sessões — pode ser várias sessões de uma vez.",

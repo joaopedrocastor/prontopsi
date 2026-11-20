@@ -6,6 +6,7 @@ import { store, loadSettings } from "./store.js";
 import { toast, modal, h } from "./util.js";
 import { logoHorizontal, logoStacked } from "./logo.js";
 import { novidadesEntre } from "./changelog.js";
+import { iniciarChecagemAtualizacao } from "./update.js";
 
 import { renderPainel } from "./views/painel.js";
 import { renderSettings } from "./views/settings.js";
@@ -120,6 +121,7 @@ function startApp() {
   window.addEventListener("hashchange", router);
   router();
   mostrarNovidades();
+  iniciarChecagemAtualizacao();
 }
 
 // Mostra a versão instalada na barra lateral (ajuda a confirmar atualizações).
