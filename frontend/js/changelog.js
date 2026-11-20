@@ -2,6 +2,11 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.4.1": [
+    "Novo menu Recibos: veja os pagamentos recebidos no mês e gere o recibo em PDF de cada um em 1 clique.",
+    "Recibo do mês por cliente: soma todas as sessões pagas no mês em um único recibo (ótimo para reembolso).",
+    "Recibo avulso para pagamentos que não estão no Financeiro. O pagador já vem preenchido com o responsável principal.",
+  ],
   "1.4.0": [
     "Atualização em 1 clique: ao surgir uma versão nova, o app baixa, instala e reabre sozinho — sem precisar baixar nada pelo navegador.",
     "Instalação por usuário (sem pedir permissão de administrador nas próximas atualizações).",

@@ -2,7 +2,7 @@
 
 Documento de continuidade do projeto. Objetivo: qualquer pessoa (ou uma nova
 sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
-2026-11-20. **Versão atual: 1.4.0.**
+2026-11-20. **Versão atual: 1.4.1.**
 
 > O histórico detalhado, voltado à usuária, fica em `frontend/js/changelog.js`.
 
@@ -27,7 +27,10 @@ sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
 - **1.4.0** — **auto-update em 1 clique** (instalação silenciosa per-user),
   **documentos PDF** (recibo e declaração de comparecimento), **lembrete por
   WhatsApp**, **responsáveis** do cliente, **valor da sessão** + cobrança
-  automática ao marcar sessão como realizada.
+  automática ao marcar sessão como realizada. (Não chegou a ser publicada
+  como release — foi direto para a 1.4.1.)
+- **1.4.1** — menu **Recibos** (`views/receipts.js`): pagamentos recebidos do
+  mês, recibo por pagamento, recibo mensal por cliente e recibo avulso.
 
 > **Cache e porta:** o app sobe em **porta aleatória** a cada abertura, então o
 > WebView sempre carrega JS/CSS frescos (sem cache velho após atualizar). No
