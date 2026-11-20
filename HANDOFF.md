@@ -2,7 +2,9 @@
 
 Documento de continuidade do projeto. Objetivo: qualquer pessoa (ou uma nova
 sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
-2026-07-08. **Versão atual: 1.1.0.**
+2026-11-20. **Versão atual: 1.4.0.**
+
+> O histórico detalhado, voltado à usuária, fica em `frontend/js/changelog.js`.
 
 ## Histórico de versões
 - **1.0.0** — base: pacientes, agenda, ficha de anamnese + PDF, backup,
@@ -13,6 +15,19 @@ sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
   atualizar (`frontend/js/changelog.js`); `Cache-Control: no-cache` no servidor
   (não servir JS/HTML antigos após update); correção do aviso "Configure
   consultório" (agora some quando a logo já inclui nome/CRP). Release publicada.
+- **1.1.1–1.1.4** — correções, Google Agenda em mão dupla (todos os
+  calendários), "Salvar no Drive", versão no rodapé, instalador versionado.
+- **1.1.5** — revisão de código: backup ZIP completo, export com documentos,
+  correção do refresh do token Google, suíte de testes.
+- **1.1.6** — nova identidade visual (logo/ícone).
+- **1.2.0** — módulo **Financeiro** (receitas/despesas, categorias, recorrência,
+  vencidas), financeiro por cliente, **Prontuário** (evolução por sessão), tema
+  terracota.
+- **1.3.0** — **Relatórios** com gráficos e indicadores do período.
+- **1.4.0** — **auto-update em 1 clique** (instalação silenciosa per-user),
+  **documentos PDF** (recibo e declaração de comparecimento), **lembrete por
+  WhatsApp**, **responsáveis** do cliente, **valor da sessão** + cobrança
+  automática ao marcar sessão como realizada.
 
 > **Cache e porta:** o app sobe em **porta aleatória** a cada abertura, então o
 > WebView sempre carrega JS/CSS frescos (sem cache velho após atualizar). No
@@ -39,12 +54,20 @@ backend/interface; troca SQLite → PostgreSQL via variável de ambiente).
 | [`prontopsi`](https://github.com/joaopedrocastor/prontopsi) | **privado** | código-fonte + documentação |
 | [`prontopsi-releases`](https://github.com/joaopedrocastor/prontopsi-releases) | **público** | instaladores (`.exe`) para download e checagem de atualização |
 
-- Release publicada: **v1.0.0** (com `ProntoPsi-Setup.exe`, 52 MB).
+- Releases versionadas (`vX.Y.Z`) com `ProntoPsi-Setup-X.Y.Z.exe`; o app usa o
+  `.exe` da última release para o auto-update.
 - Download direto: `https://github.com/joaopedrocastor/prontopsi-releases/releases/latest`
 
 ---
 
 ## 3. Máquina de desenvolvimento (caminhos reais)
+
+> Há mais de uma máquina de desenvolvimento. A tabela abaixo é a máquina
+> original (onde ficam Inno Setup e `gh` logado para publicar releases). Em
+> outra máquina, o clone pode estar em outra pasta (ex.:
+> `Desktop\CLAUDE\prontopsi`) — os comandos valem igual, a partir da raiz do
+> repositório. Python do projeto: **3.12** (versões mais novas podem quebrar
+> dependências como pywebview).
 
 | Item | Caminho |
 |------|---------|
@@ -82,31 +105,40 @@ anamnese/
 ├─ installer.iss           # Config do instalador Inno Setup
 ├─ README.md               # Documentação principal
 ├─ HANDOFF.md              # (este arquivo)
+├─ tests/                 # pytest (pacientes, anamnese, agenda, backup, google, smoke)
 ├─ backend/
-│  ├─ alembic/versions/    # 0001..0004 (migrações)
+│  ├─ alembic/versions/    # 0001..0009 (migrações)
 │  └─ app/
 │     ├─ config.py         # ⭐ APP_VERSION, caminhos, RELEASES_REPO, URL do banco
 │     ├─ database.py       # engine/sessão SQLAlchemy
 │     ├─ db_init.py        # aplica migrações no boot (fallback create_all)
-│     ├─ models.py         # ⭐ Settings, Patient, Anamnesis, Appointment
+│     ├─ models.py         # ⭐ Settings, Patient, Guardian, ClientNote, Document,
+│     │                    #   Anamnesis, Appointment, FinanceEntry
 │     ├─ schemas.py        # contratos Pydantic
 │     ├─ form_schema.py    # ⭐ definição canônica da ficha (13 seções)
 │     ├─ main.py           # app FastAPI (monta API + serve o frontend)
 │     ├─ services/         # regras de negócio (camada isolada da web)
-│     │   ├─ patients_service.py  anamnesis_service.py  appointments_service.py
-│     │   ├─ pdf_service.py       backup_service.py     transfer_service.py
-│     │   ├─ settings_service.py  google_service.py     update_service.py
-│     └─ routers/          # rotas HTTP: meta, settings, patients, anamnesis,
-│                          #   appointments, google, system
+│     │   ├─ patients_service.py   guardians_service.py   notes_service.py
+│     │   ├─ documents_service.py  anamnesis_service.py   appointments_service.py
+│     │   ├─ finance_service.py    reports_service.py     settings_service.py
+│     │   ├─ pdf_service.py (ficha)  document_pdf_service.py (recibo/declaração)
+│     │   ├─ backup_service.py     transfer_service.py    google_service.py
+│     │   └─ update_service.py
+│     └─ routers/          # rotas HTTP: meta, settings, patients, client
+│                          #   (notas/responsáveis/documentos), anamnesis,
+│                          #   appointments, finance, reports, doc_pdf, google, system
 └─ frontend/
    ├─ index.html           # shell: barra lateral + topo + tela de senha
-   ├─ css/styles.css        # tema ProntoPsi (teal/laranja/navy) + agenda
+   ├─ css/styles.css        # tema ProntoPsi (terracota) + agenda
    ├─ assets/fonts/         # Poppins .ttf
    ├─ assets/prontopsi.ico  # ícone do app
    └─ js/
       ├─ app.js            # roteador, barra lateral, zoom, senha/recuperação
-      ├─ api.js store.js util.js logo.js systemActions.js
-      └─ views/            # painel, agenda, patients, anamnese, settings, export, soon
+      ├─ api.js store.js util.js logo.js systemActions.js changelog.js
+      ├─ documents.js      # recibo / declaração (PDF)
+      ├─ whatsapp.js       # lembrete de consulta por WhatsApp
+      └─ views/            # painel, agenda, patients, anamnese, finance, reports,
+                           #   settings, export (soon.js não é usado por nenhuma rota)
 ```
 
 **Camadas:** routers (web) ↔ services (negócio) ↔ models (banco). Sem regra de
@@ -125,18 +157,28 @@ Migrações Alembic aplicadas em ordem no primeiro boot:
 - **0005** — `patients.email` + `patients.status`; tabelas `client_notes`
   (timeline) e `documents`
 - **0006** — `anamneses.google_drive_file_id`
+- **0007** — tabela `finance_entries` (receitas/despesas)
+- **0008** — `appointments.evolution` (prontuário / evolução da sessão)
+- **0009** — tabela `guardians` (responsáveis); `patients.session_price_cents`;
+  `finance_entries.appointment_id` (cobrança gerada pela sessão)
 
 Tabelas:
 - **settings** (linha única): identidade (logo/nome/CRP), senha (hash),
   recuperação (email + SMTP), Google (client_id/secret/calendar/timezone).
 - **patients**: nome, nascimento, sexo, telefones, **email**, **status**
-  (ativo/espera/alta/desativado/desistente), observações.
+  (ativo/espera/alta/desativado/desistente), **valor da sessão**
+  (`session_price_cents`), observações.
+- **guardians**: responsáveis do cliente (nome, parentesco, telefone, email,
+  CPF, `is_primary` — o lembrete de WhatsApp usa o telefone do principal).
 - **client_notes**: timeline de anotações do cliente (data, título, texto).
 - **documents**: anexos do cliente (arquivo em `data/documents/`, caminho no banco).
 - **anamneses**: `form_version`, `status` (rascunho/concluida), `data` (JSON com
   os campos da ficha).
 - **appointments**: paciente (opcional), início/fim, status, modalidade, cor,
-  observações, `google_event_id`.
+  observações, **`evolution`** (prontuário), `google_event_id`.
+- **finance_entries**: `kind` (receita/despesa), descrição, categoria,
+  `amount_cents`, vencimento, pago/data de pagamento, `recurrence`, paciente e
+  sessão (`appointment_id`) opcionais. Valores sempre em **centavos**.
 
 **Portabilidade nuvem:** UUIDs como chave, datas ISO 8601 UTC, auditoria
 (`created_at`/`updated_at`), export/import JSON+ZIP (upsert por UUID).
@@ -148,27 +190,41 @@ Tabelas:
 - **Painel**: indicadores + **alerta de próximas consultas** + aviso de nova
   versão (checagem no GitHub).
 - **Agenda**: visões Mês/Semana/Dia, criar/editar/excluir sessão, eventos
-  coloridos, sobreposição lado a lado, eventos avulsos (sem paciente).
+  coloridos, sobreposição lado a lado, eventos avulsos (sem paciente),
+  **evolução da sessão**, **lembrete por WhatsApp**, sincronização Google.
 - **Clientes**: listagem em **tabela** (nome/status/email/telefone/data + filtro
   por status + busca). **Ficha de Cliente** com sub-menu: Principal (resumo +
-  **timeline de anotações**), Cadastro, Anamnese, Sessões realizadas, Documentos
-  (upload/download), Financeiro (em breve).
+  **timeline de anotações**), Cadastro (inclui **responsáveis** e **valor da
+  sessão**), Anamnese, Sessões realizadas, **Prontuário**, Documentos
+  (upload/download) e **Financeiro** do cliente (cobranças, pago/em aberto).
 - **Ficha de Anamnese**: navegação por seções, **salvamento automático** (salva
   ao fechar também), aviso não bloqueante de campos vazios, status, duplicar.
 - **PDF** fiel ao papel (cabeçalho com logo + selo, pílulas de seção terracota,
-  campos vazios pontilhados).
+  campos vazios pontilhados) + "Salvar no Drive".
+- **Financeiro**: receitas/despesas, categorias, saldo do mês, contas vencidas,
+  lançamentos recorrentes; **cobrança automática** ao marcar a sessão como
+  realizada (usa o valor da sessão do cliente).
+- **Relatórios**: gráficos (receita x despesa por mês, sessões, situação das
+  sessões e dos clientes) + indicadores do período.
+- **Documentos PDF**: recibo de pagamento e declaração de comparecimento, com
+  logo e CRP.
 - **Configuração**: logo (com opção "já inclui nome/CRP"), senha com
-  **recuperação por e-mail**, **integração Google Agenda**.
-- **Backup/Restaurar** e **Exportar/Importar** dados.
+  **recuperação por e-mail**, **integração Google** (com "Testar
+  sincronização").
+- **Backup/Restaurar** (ZIP completo) e **Exportar/Importar** dados.
 - **Zoom** de interface (acessibilidade).
-- **Verificação de atualização** via `prontopsi-releases`.
+- **Auto-update em 1 clique**: checa `prontopsi-releases`, baixa o `.exe`,
+  instala silencioso (`/VERYSILENT`, per-user) e reabre (`run.py →
+  install_update`). Só funciona no app empacotado.
+- **Novidades da versão** ao reabrir após atualizar (`changelog.js`).
 
 ---
 
 ## 8. Pendências / próximos passos
 
-- [ ] **Financeiro** (pagamento de sessões, receita) — próximo módulo pedido.
-- [ ] **Relatórios** com gráficos/tabelas (clientes, sessões, financeiro).
+- [x] **Financeiro** — feito na 1.2.0 (cobrança automática na 1.4.0).
+- [x] **Relatórios** — feito na 1.3.0.
+- [x] **Auto-update sem navegador** — feito na 1.4.0.
 - [ ] **Criptografia do banco (SQLCipher)** — `anamnese.db` é texto puro (dado
       sensível / LGPD). Interino: orientar BitLocker + senha de abertura. É
       mudança grande (dep nativa no PyInstaller + migrar o `.db` existente +
@@ -178,6 +234,10 @@ Tabelas:
 - [ ] (Opcional) **Assinar o .exe** para evitar o aviso do SmartScreen.
 - [ ] (Opcional) Instalador **onedir** para abertura mais rápida (hoje onefile
       extrai em ~5-10s no 1º clique).
+- [ ] (Limpeza) Remover `frontend/js/views/soon.js` (não usado) e adicionar
+      `path_separator = os` no `alembic.ini` (aviso de depreciação nos testes).
+- [ ] Testes ainda não cobrem financeiro, relatórios, responsáveis e PDFs de
+      documentos.
 
 **Feito na 1.1.5 (revisão de código):** backup agora é ZIP completo
 (banco + logo + documentos) e restore aceita ZIP/.db; export/import inclui os
@@ -196,10 +256,11 @@ cd C:\Claude\anamnese
 .\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --port 8799
 ```
 
-Recriar o ambiente do zero:
+Recriar o ambiente do zero (Python **3.12**):
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+py -V:3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest -q      # roda a suíte de testes
 ```
 
 ---
@@ -234,7 +295,9 @@ Windows atualizado). Nada de Python.
      --repo joaopedrocastor/prontopsi-releases `
      --title "ProntoPsi 1.1.4" --notes "novidades..."
    ```
-6. Quem está numa versão menor recebe o aviso automaticamente no Painel.
+6. Quem está numa versão menor recebe o aviso automaticamente no Painel e
+   pode atualizar em 1 clique (o app baixa o `.exe` anexado à release — por
+   isso a release precisa ter **um** `.exe`).
 
 > A versão instalada aparece no rodapé do menu lateral ("ProntoPsi vX.Y.Z") —
 > use para confirmar que a atualização foi aplicada.
@@ -310,16 +373,17 @@ Backend pronto (`google_service.py`). Para funcionar, a usuária precisa:
 - **Pasta de dados = `AnamneseInfantil`** (constante `APP_NAME` em `config.py`).
   **Não renomear** para "ProntoPsi" sem migrar a pasta — órfãozaria os dados de
   quem já usa.
-- **Fichas/PDF usam terracota `#8B3A1E`** (identidade do documento em papel). O
-  resto do app é teal/laranja/navy (marca ProntoPsi). É proposital.
+- **Fichas/PDF usam terracota `#8B3A1E`** (identidade do documento em papel).
+  Desde a 1.2.0 o app inteiro também segue o tom terracota.
 - Migrações são a fonte da verdade do schema; ao mudar `models.py`, criar uma
   nova migração `000X_*.py` (não editar as antigas).
 - `.gitignore` exclui `.venv/`, `data/`, `dist/`, `Output/`, `build/`,
   `google_token.json`. **Binários não vão pro git** — vão para *Releases*.
-- Preview local (dev): há uma entrada `anamnese` (porta 8799) em
-  `C:\Claude\.claude\launch.json` (arquivo compartilhado com outro projeto).
-- Exe **não é auto-instalação silenciosa**: o app **avisa** e abre a página de
-  download; a usuária baixa e instala por cima.
+- Preview local (dev): entrada `anamnese` (porta 8799) em
+  `.claude/launch.json` na raiz do repositório.
+- **Auto-update**: o instalador é per-user (`PrivilegesRequired=lowest`) e usa
+  `AppMutex` para fechar o app antes de trocar o `.exe`. Quem instalou uma
+  versão antiga como admin (Program Files) pode precisar reinstalar uma vez.
 - `.exe` não é assinado → SmartScreen mostra aviso ("Mais informações →
   Executar assim mesmo"). Normal.
 
