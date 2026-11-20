@@ -50,16 +50,25 @@ backend/interface; troca SQLite → PostgreSQL via variável de ambiente).
 
 ---
 
-## 2. Repositórios (GitHub, conta `joaopedrocastor`)
+## 2. Repositórios (GitHub)
 
 | Repo | Visibilidade | Uso |
 |------|--------------|-----|
-| [`prontopsi`](https://github.com/joaopedrocastor/prontopsi) | **privado** | código-fonte + documentação |
-| [`prontopsi-releases`](https://github.com/joaopedrocastor/prontopsi-releases) | **público** | instaladores (`.exe`) para download e checagem de atualização |
+| [`joaopedrocastor/prontopsi`](https://github.com/joaopedrocastor/prontopsi) | **privado** | código-fonte + documentação |
+| [`eleuterioautomacao/prontopsi-releases`](https://github.com/eleuterioautomacao/prontopsi-releases) | **público** | instaladores (`.exe`) para download e checagem de atualização |
+
+> O repo de releases foi **transferido** de `joaopedrocastor` para
+> `eleuterioautomacao` (nov/2026). A partir da 1.4.2 o app consulta o nome novo
+> (`RELEASES_REPO` em `config.py`). Instalações até a 1.4.1 consultam o nome
+> antigo e só acham as releases pelo **redirecionamento do GitHub** — por isso
+> **nunca crie um repo `joaopedrocastor/prontopsi-releases`** (quebraria o
+> redirecionamento e essas instalações deixariam de receber atualizações).
 
 - Releases versionadas (`vX.Y.Z`) com `ProntoPsi-Setup-X.Y.Z.exe`; o app usa o
   `.exe` da última release para o auto-update.
-- Download direto: `https://github.com/joaopedrocastor/prontopsi-releases/releases/latest`
+- Download direto: `https://github.com/eleuterioautomacao/prontopsi-releases/releases/latest`
+- A **1.4.0 nunca foi publicada**; a primeira release com auto-update é a
+  **v1.4.1**. Quem está na 1.3.0 ou anterior atualiza manualmente uma vez.
 
 ---
 
@@ -82,6 +91,12 @@ backend/interface; troca SQLite → PostgreSQL via variável de ambiente).
 | GitHub CLI (gh) | `C:\Program Files\GitHub CLI\gh.exe` (logado como `joaopedrocastor`) |
 
 Ferramentas instaladas via `winget`: Inno Setup, GitHub CLI.
+
+**Segunda máquina** (conta GitHub `eleuterioautomacao`, que publicou a v1.4.1):
+projeto em `Desktop\CLAUDE\prontopsi`; ISCC em
+`%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe`; `gh` em
+`C:\Program Files\GitHub CLI\gh.exe`; Git em `C:\Program Files\Git`;
+PyInstaller dentro do `.venv`.
 
 ---
 
@@ -295,7 +310,7 @@ Windows atualizado). Nada de Python.
    ```powershell
    & "C:\Program Files\GitHub CLI\gh.exe" release create v1.1.4 `
      "C:\Claude\anamnese\Output\ProntoPsi-Setup-1.1.4.exe" `
-     --repo joaopedrocastor/prontopsi-releases `
+     --repo eleuterioautomacao/prontopsi-releases `
      --title "ProntoPsi 1.1.4" --notes "novidades..."
    ```
 6. Quem está numa versão menor recebe o aviso automaticamente no Painel e

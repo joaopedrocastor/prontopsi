@@ -16,7 +16,9 @@ APP_NAME = "AnamneseInfantil"
 # Versão atual do aplicativo (usada na checagem de atualizações).
 APP_VERSION = "1.4.1"
 # Repositório público onde ficam os instaladores/releases do ProntoPsi.
-RELEASES_REPO = "joaopedrocastor/prontopsi-releases"
+# (Transferido de joaopedrocastor para eleuterioautomacao em 2026-11; versões
+# antigas ainda usam o nome antigo e dependem do redirecionamento do GitHub.)
+RELEASES_REPO = "eleuterioautomacao/prontopsi-releases"
 
 # Raiz do repositorio (…/anamnese)
 BASE_DIR = Path(__file__).resolve().parents[2]
