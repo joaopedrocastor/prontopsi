@@ -46,6 +46,11 @@ sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
   (número inicial). Editar mantém o número; o PDF é gerado do recibo salvo com
   a logo/endereços atuais. O antigo `POST /api/doc-pdf/recibo` foi removido.
   Menu "Clientes" renomeado para **Pacientes** (só textos; rotas iguais).
+  **Logo oficial embutida**: `frontend/assets/logo-oficial.png` (horizontal,
+  usada nos PDFs) e `logo-oficial-vertical.png` (empilhada, barra lateral e
+  tela de senha, via `logo.js`). `settings_service.resolve_logo_path` usa a
+  logo enviada em Configuração se houver; senão a oficial (`logo_has_info`
+  = True para ela). "Usar a logo oficial" em Configuração remove a enviada.
 
 > **Cache e porta:** o app sobe em **porta aleatória** a cada abertura, então o
 > WebView sempre carrega JS/CSS frescos (sem cache velho após atualizar). No

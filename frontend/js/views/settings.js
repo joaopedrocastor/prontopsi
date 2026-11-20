@@ -18,11 +18,13 @@ export async function renderSettings(container) {
   container.appendChild(h("h1", { style: "color:var(--navy);margin:0 0 18px" }, "Configurações"));
 
   // ---- Identidade ----
+  // Sem logo enviada, os documentos usam a logo oficial embutida no app.
+  const OFICIAL = "assets/logo-oficial.png";
   const logoImg = h("img", {
-    class: "logo-preview" + (s.logo_path ? "" : " hidden"),
-    src: s.logo_path ? "/api/settings/logo/image?t=" + Date.now() : "",
+    class: "logo-preview",
+    src: s.logo_path ? "/api/settings/logo/image?t=" + Date.now() : OFICIAL,
   });
-  const logoHint = h("div", { class: "muted" }, s.logo_path ? "Logo atual" : "Nenhuma logo enviada");
+  const logoHint = h("div", { class: "muted" }, s.logo_path ? "Logo enviada (usada nos documentos)" : "Logo oficial (padrão do app)");
 
   const fileInput = h("input", { type: "file", accept: ".png,.jpg,.jpeg,.webp", class: "hidden" });
   fileInput.addEventListener("change", async () => {
@@ -32,15 +34,14 @@ export async function renderSettings(container) {
       const upd = await api.uploadLogo(f);
       store.settings = upd; refreshHeader();
       logoImg.src = "/api/settings/logo/image?t=" + Date.now();
-      logoImg.classList.remove("hidden");
-      logoHint.textContent = "Logo atual";
+      logoHint.textContent = "Logo enviada (usada nos documentos)";
       toast("Logo atualizada.", "ok");
     } catch (e) { toast(e.message, "err"); }
   });
 
   const drop = h("div", { class: "logo-drop", onClick: () => fileInput.click() }, [
     logoImg,
-    h("div", {}, "📷 Clique para enviar sua logo (PNG ou JPG)"),
+    h("div", {}, "📷 Clique para enviar outra logo (PNG ou JPG)"),
     logoHint,
   ]);
 
@@ -55,13 +56,13 @@ export async function renderSettings(container) {
       s.logo_path ? h("button", {
         class: "btn-ghost btn-sm", style: "margin-top:8px",
         onClick: async () => {
-          if (!(await confirmar({ title: "Remover logo", message: "Remover a logo atual?" }))) return;
+          if (!(await confirmar({ title: "Usar a logo oficial", message: "Remover a logo enviada e voltar a usar a logo oficial do app nos documentos?" }))) return;
           const upd = await api.removeLogo();
           store.settings = upd; refreshHeader();
-          logoImg.classList.add("hidden"); logoHint.textContent = "Nenhuma logo enviada";
-          toast("Logo removida.", "ok");
+          logoImg.src = OFICIAL; logoHint.textContent = "Logo oficial (padrão do app)";
+          toast("Usando a logo oficial.", "ok");
         },
-      }, "Remover logo") : null,
+      }, "Usar a logo oficial") : null,
     ]),
     h("div", { class: "form-row w-2" }, [
       h("div", { class: "field" }, [h("label", {}, "Nome profissional"), nameI]),

@@ -68,8 +68,8 @@ function setActiveNav(nav) {
 // Atualiza a logo/identidade na barra lateral e no topo a partir das configurações.
 export function refreshHeader() {
   const s = store.settings || {};
-  // Barra lateral: logo do ProntoPsi (software).
-  document.getElementById("sidebar-logo").innerHTML = logoHorizontal(168);
+  // Barra lateral: logo oficial da psicóloga.
+  document.getElementById("sidebar-logo").innerHTML = logoHorizontal(150);
 
   // Rodapé da barra: mini identidade da clínica (logo/nome da psicóloga).
   const mini = document.getElementById("clinic-mini");
@@ -155,7 +155,7 @@ function setupLock() {
   const lock = document.getElementById("lock");
   const input = document.getElementById("lock-input");
   const errorEl = document.getElementById("lock-error");
-  document.getElementById("lock-logo").innerHTML = logoStacked(210);
+  document.getElementById("lock-logo").innerHTML = logoStacked(230);
 
   async function unlock() {
     const ok = (await api.verifyPassword(input.value)).ok;

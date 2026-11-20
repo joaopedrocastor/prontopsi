@@ -17,7 +17,7 @@ from reportlab.pdfgen.canvas import FILL_EVEN_ODD
 
 from ..models import Patient, Settings
 from . import pdf_service
-from .settings_service import resolve_logo_path
+from .settings_service import logo_has_info, resolve_logo_path
 
 TERRACOTA = HexColor("#8B3A1E")
 TEXTO = HexColor("#3A3A3A")
@@ -68,20 +68,25 @@ def _header(c, settings: Settings) -> float:
     text_x = MARGIN
 
     logo_path = resolve_logo_path(settings)
+    so_logo = False
+    base_logo = top - 46  # parte de baixo da logo (a linha separadora fica abaixo)
     if logo_path:
         try:
-            reader = ImageReader(str(logo_path))
+            reader = _logo_recortada(logo_path)
             lw0, lh0 = reader.getSize()
             if lh0 > 0:
-                max_h, max_w = 64.0, 150.0
+                so_logo = logo_has_info(settings)
+                max_h, max_w = (70.0, 270.0) if so_logo else (64.0, 150.0)
                 scale = min(max_h / lh0, max_w / lw0)
                 lw, lh = lw0 * scale, lh0 * scale
-                c.drawImage(reader, MARGIN, top - lh + 6, width=lw, height=lh,
-                            mask="auto", preserveAspectRatio=True)
+                c.drawImage(reader, MARGIN, top - lh + 6, width=lw, height=lh, mask="auto")
                 text_x = MARGIN + lw + 14
+                base_logo = min(base_logo, top - lh + 6)
         except Exception:
-            pass
+            so_logo = False
 
+    if so_logo:  # a logo já traz nome/título/CRP: não repete o texto
+        name = title = crp = ""
     c.setFillColor(TERRACOTA)
     c.setFont(F_SEMI, 15)
     if name:
@@ -95,7 +100,7 @@ def _header(c, settings: Settings) -> float:
     if crp:
         c.drawString(text_x, top - 42, crp if crp.upper().startswith("CRP") else f"CRP {crp}")
 
-    sep_y = top - 58
+    sep_y = min(top - 58, base_logo - 10)
     c.setStrokeColor(TERRACOTA)
     c.setLineWidth(1.2)
     c.line(MARGIN, sep_y, PAGE_W - MARGIN, sep_y)
@@ -214,14 +219,15 @@ def _recibo_cabecalho(c, settings: Settings) -> None:
         reader = _logo_recortada(logo_path)
     if reader is not None:
         lw0, lh0 = reader.getSize()
-        if settings.logo_includes_info:
+        completa = logo_has_info(settings)
+        if completa:
             max_w, max_h = 290.0, 78.0
         else:
             max_w, max_h = 80.0, 70.0
         s = min(max_w / lw0, max_h / lh0)
         lw, lh = lw0 * s, lh0 * s
         c.drawImage(reader, x, top - lh, width=lw, height=lh, mask="auto")
-        if settings.logo_includes_info:
+        if completa:
             return
         x += lw + 10
     # Sem logo "completa": escreve nome / título / CRP ao lado.

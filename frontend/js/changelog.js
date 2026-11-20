@@ -10,6 +10,7 @@ export const CHANGELOG = {
     "Todo recibo gerado fica salvo em Recibos → Recibos emitidos: baixe o PDF de novo ou edite e gere novamente com o mesmo número.",
     "No recibo, escolha o paciente numa lista com todos os cadastrados; os responsáveis dele aparecem para escolher quem pagou.",
     "O menu Clientes agora se chama Pacientes.",
+    "Logo oficial no app: na barra lateral, na tela de senha e nos PDFs (ficha de anamnese, recibo e declaração).",
     "Correção: ao atualizar, a versão antiga instalada \"para todos os usuários\" é removida — fica apenas um ProntoPsi no computador (seus dados são mantidos).",
   ],
   "1.4.1": [

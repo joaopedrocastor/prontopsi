@@ -158,7 +158,7 @@ def export_zip(db: Session, include_pdfs: bool = True) -> bytes:
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("data.json", json.dumps(payload, ensure_ascii=False, indent=2))
 
-        logo = settings_service.resolve_logo_path(settings)
+        logo = settings_service.uploaded_logo_path(settings)  # só a enviada (a oficial vem no app)
         if logo:
             zf.write(str(logo), f"assets/{logo.name}")
 

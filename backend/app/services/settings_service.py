@@ -17,7 +17,7 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..config import get_assets_dir, get_data_dir
+from ..config import FRONTEND_DIR, get_assets_dir, get_data_dir
 from ..models import Settings
 
 _ALLOWED_LOGO_EXT = {".png", ".jpg", ".jpeg", ".webp"}
@@ -136,12 +136,32 @@ def remove_logo(db: Session) -> Settings:
     return settings
 
 
-def resolve_logo_path(settings: Settings) -> Path | None:
-    """Caminho absoluto da logo em disco (ou None se nao houver/nao existir)."""
+# Logo oficial embutida no app (já traz nome, título e CRP). Usada nos PDFs
+# quando a usuária não enviou outra logo em Configuração.
+OFFICIAL_LOGO = FRONTEND_DIR / "assets" / "logo-oficial.png"
+
+
+def uploaded_logo_path(settings: Settings) -> Path | None:
+    """Logo enviada em Configuração (ou None se não houver/não existir)."""
     if not settings.logo_path:
         return None
     p = get_data_dir() / settings.logo_path
     return p if p.exists() else None
+
+
+def resolve_logo_path(settings: Settings) -> Path | None:
+    """Logo a usar nos documentos: a enviada pela usuária ou a oficial do app."""
+    p = uploaded_logo_path(settings)
+    if p:
+        return p
+    return OFFICIAL_LOGO if OFFICIAL_LOGO.exists() else None
+
+
+def logo_has_info(settings: Settings) -> bool:
+    """A logo em uso já contém nome/título/CRP? (a oficial sempre contém)."""
+    if uploaded_logo_path(settings):
+        return bool(settings.logo_includes_info)
+    return OFFICIAL_LOGO.exists()
 
 
 def _remove_old_logo(settings: Settings) -> None:

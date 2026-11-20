@@ -42,6 +42,7 @@ a { color: var(--primary); }
 
 /* ---------- Marca ProntoPsi ---------- */
 .pp-logo-img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+.brand-card { background: #fff; border-radius: 10px; padding: 12px 10px; }
 .pp-logo { display: inline-flex; align-items: center; gap: 10px; }
 .pp-logo-v { flex-direction: column; gap: 6px; text-align: center; }
 .pp-mark { flex: none; }

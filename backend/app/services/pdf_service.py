@@ -31,7 +31,7 @@ from reportlab.platypus import (
 from ..config import FONTS_DIR
 from ..form_schema import SECTIONS
 from ..models import Anamnesis, Patient, Settings
-from ..services.settings_service import resolve_logo_path
+from ..services.settings_service import logo_has_info, resolve_logo_path
 from ..utils import calcular_idade
 
 # ---------------- Paleta e tipografia ----------------
@@ -263,13 +263,15 @@ def _make_header(settings: Settings):
     name = settings.professional_name or ""
     title = settings.professional_title or ""
     crp = settings.crp or ""
-    includes_info = bool(getattr(settings, "logo_includes_info", False))
+    includes_info = logo_has_info(settings)
     logo_path = resolve_logo_path(settings)
     logo_reader = None
     logo_dims = (0, 0)
     if logo_path:
         try:
-            logo_reader = ImageReader(str(logo_path))
+            # Recorta sobras e fundo liso da logo (import tardio evita ciclo).
+            from .document_pdf_service import _logo_recortada
+            logo_reader = _logo_recortada(logo_path) or ImageReader(str(logo_path))
             logo_dims = logo_reader.getSize()
         except Exception:
             logo_reader = None
