@@ -24,13 +24,13 @@ async function baixarPdf(res, fallbackName) {
 
 const field = (label, control) => h("div", { class: "field" }, [h("label", {}, label), control]);
 
-// Recibo de pagamento. opts: { patient_id?, payer?, amount?, reference? }
+// Recibo de pagamento. opts: { patient_id?, payer?, amount?, reference?, when? }
 export function gerarRecibo(opts = {}) {
   const payerI = h("input", { type: "text", value: opts.payer || "", placeholder: "Nome de quem pagou (responsável)" });
   const amountI = h("input", { type: "number", step: "0.01", min: "0", value: opts.amount != null ? opts.amount : "", placeholder: "0,00" });
   const refI = h("input", { type: "text", value: opts.reference || "atendimento psicológico", placeholder: "Referente a..." });
   const cityI = h("input", { type: "text", value: getCidade(), placeholder: "Cidade (opcional)" });
-  const dateI = h("input", { type: "date", value: hojeISO() });
+  const dateI = h("input", { type: "date", value: opts.when || hojeISO() });
 
   modal({
     title: "Gerar recibo",
