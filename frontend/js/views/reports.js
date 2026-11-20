@@ -1,4 +1,4 @@
-// Relatórios: indicadores e gráficos a partir de finanças, agenda e clientes.
+// Relatórios: indicadores e gráficos a partir de finanças, agenda e pacientes.
 // Somente leitura. Gráficos em SVG/CSS (sem dependências).
 
 import { api } from "../api.js";
@@ -50,8 +50,8 @@ export async function renderReports(container) {
 
   const row2 = h("div", { class: "stat-row", style: "grid-template-columns:repeat(3,1fr)" });
   row2.appendChild(kpi("Sessões realizadas", String(t.sessoes_realizadas), "var(--navy)"));
-  row2.appendChild(kpi("Clientes", String(t.clientes), "var(--navy)"));
-  row2.appendChild(kpi("Clientes ativos", String(t.clientes_ativos), "var(--ok)"));
+  row2.appendChild(kpi("Pacientes", String(t.clientes), "var(--navy)"));
+  row2.appendChild(kpi("Pacientes ativos", String(t.clientes_ativos), "var(--ok)"));
   body.appendChild(row2);
 
   // Gráfico financeiro mensal (receita x despesa)
@@ -67,7 +67,7 @@ export async function renderReports(container) {
   ]));
 
   body.appendChild(h("div", { class: "card", style: "margin-top:16px" }, [
-    cardHead("Clientes por situação"),
+    cardHead("Pacientes por situação"),
     distrib(d.clients_status, STATUS_CLI),
   ]));
 }

@@ -17,7 +17,8 @@ from sqlalchemy.orm import Session
 from ..config import get_assets_dir, get_data_dir
 from ..form_schema import FORM_VERSION
 from ..models import (
-    Anamnesis, Appointment, ClientNote, Document, FinanceEntry, Guardian, Patient, Settings,
+    Anamnesis, Appointment, ClientNote, Document, FinanceEntry, Guardian, Patient, Receipt,
+    Settings,
 )
 from ..utils import now_iso
 from . import pdf_service, settings_service
@@ -34,6 +35,7 @@ def export_dict(db: Session) -> dict:
     documents = db.scalars(select(Document).order_by(Document.created_at)).all()
     finance = db.scalars(select(FinanceEntry).order_by(FinanceEntry.created_at)).all()
     guardians = db.scalars(select(Guardian).order_by(Guardian.created_at)).all()
+    receipts = db.scalars(select(Receipt).order_by(Receipt.number)).all()
 
     return {
         "app": "AnamneseInfantil",
@@ -46,6 +48,10 @@ def export_dict(db: Session) -> dict:
             "professional_title": settings.professional_title,
             "crp": settings.crp,
             "logo_path": settings.logo_path,
+            "legal_name": settings.legal_name,
+            "cpf": settings.cpf,
+            "offices": settings_service.get_offices(settings),
+            "receipt_next": settings.receipt_next or 1,
         },
         "patients": [
             {
@@ -129,6 +135,17 @@ def export_dict(db: Session) -> dict:
             }
             for f in finance
         ],
+        "receipts": [
+            {
+                "id": r.id, "number": r.number, "issued_on": r.issued_on,
+                "patient_id": r.patient_id, "patient_name": r.patient_name,
+                "payer": r.payer, "payer_cpf": r.payer_cpf, "payer_title": r.payer_title,
+                "amount_cents": r.amount_cents, "sessions": r.sessions,
+                "session_dates": r.session_dates, "service": r.service, "city": r.city,
+                "created_at": r.created_at, "updated_at": r.updated_at,
+            }
+            for r in receipts
+        ],
     }
 
 
@@ -185,6 +202,14 @@ def import_dict(db: Session, payload: dict) -> dict:
         settings.crp = s.get("crp", settings.crp)
         if s.get("logo_path"):
             settings.logo_path = s["logo_path"]
+        if "legal_name" in s:
+            settings.legal_name = s.get("legal_name")
+        if "cpf" in s:
+            settings.cpf = s.get("cpf")
+        if isinstance(s.get("offices"), list):
+            settings.offices = json.dumps(s["offices"], ensure_ascii=False)
+        if s.get("receipt_next"):
+            settings.receipt_next = max(int(s["receipt_next"]), settings.receipt_next or 1)
         stats["settings"] = 1
 
     for p in payload.get("patients", []):
@@ -285,6 +310,17 @@ def import_dict(db: Session, payload: dict) -> dict:
             obj.created_at = f["created_at"]
         db.merge(obj)
         stats["finance_entries"] = stats.get("finance_entries", 0) + 1
+
+    for r in payload.get("receipts", []):
+        obj = db.get(Receipt, r["id"]) or Receipt(id=r["id"])
+        for campo in ("number", "issued_on", "patient_id", "patient_name", "payer", "payer_cpf",
+                      "payer_title", "amount_cents", "sessions", "session_dates", "service", "city"):
+            if campo in r:
+                setattr(obj, campo, r[campo])
+        if r.get("created_at"):
+            obj.created_at = r["created_at"]
+        db.merge(obj)
+        stats["receipts"] = stats.get("receipts", 0) + 1
 
     db.commit()
     return stats

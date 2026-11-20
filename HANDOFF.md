@@ -34,6 +34,18 @@ sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
 - **1.4.2** — instalador remove a instalação antiga "para todos os usuários"
   (HKLM/Program Files, das versões ≤1.3.x) para não ficarem 2 ProntoPsi;
   `RELEASES_REPO` aponta para `eleuterioautomacao/prontopsi-releases`.
+  **Recibo novo** (`document_pdf_service.build_recibo`): layout do modelo em
+  papel (logo recortada com fundo removido, arcos, título espaçado, texto
+  justificado, rodapé com endereço do consultório). Migração **0010**:
+  `settings.legal_name`, `cpf`, `offices` (JSON cidade/endereço/telefone) e
+  `receipt_next` (numeração). Valor e quantidade por extenso em
+  `services/extenso.py`. Finance expõe `appointment_date` (dia da sessão).
+  **Recibos salvos** (migração **0011**, tabela `receipts`; `receipts_service`,
+  rotas `/api/receipts`): nº automático e contínuo = max(último + 1,
+  `settings.receipt_next`); `receipt_next` só é editável antes do 1º recibo
+  (número inicial). Editar mantém o número; o PDF é gerado do recibo salvo com
+  a logo/endereços atuais. O antigo `POST /api/doc-pdf/recibo` foi removido.
+  Menu "Clientes" renomeado para **Pacientes** (só textos; rotas iguais).
 
 > **Cache e porta:** o app sobe em **porta aleatória** a cada abertura, então o
 > WebView sempre carrega JS/CSS frescos (sem cache velho após atualizar). No
@@ -128,7 +140,7 @@ anamnese/
 ├─ HANDOFF.md              # (este arquivo)
 ├─ tests/                 # pytest (pacientes, anamnese, agenda, backup, google, smoke)
 ├─ backend/
-│  ├─ alembic/versions/    # 0001..0009 (migrações)
+│  ├─ alembic/versions/    # 0001..0011 (migrações)
 │  └─ app/
 │     ├─ config.py         # ⭐ APP_VERSION, caminhos, RELEASES_REPO, URL do banco
 │     ├─ database.py       # engine/sessão SQLAlchemy
@@ -182,6 +194,9 @@ Migrações Alembic aplicadas em ordem no primeiro boot:
 - **0008** — `appointments.evolution` (prontuário / evolução da sessão)
 - **0009** — tabela `guardians` (responsáveis); `patients.session_price_cents`;
   `finance_entries.appointment_id` (cobrança gerada pela sessão)
+- **0010** — `settings.legal_name`, `cpf`, `offices` (JSON) e `receipt_next`
+  (dados e numeração do recibo)
+- **0011** — tabela `receipts` (recibos emitidos, `number` único)
 
 Tabelas:
 - **settings** (linha única): identidade (logo/nome/CRP), senha (hash),

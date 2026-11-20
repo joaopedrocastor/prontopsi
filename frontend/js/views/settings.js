@@ -7,7 +7,8 @@ import { h, toast, confirmar } from "../util.js";
 
 // Tela de Configuração: identidade (logo/nome/CRP), senha, recuperação e Google.
 export async function renderSettings(container) {
-  const s = store.settings || (await loadSettings());
+  // Sempre recarrega: o nº do próximo recibo muda a cada recibo gerado.
+  const s = await loadSettings().catch(() => store.settings || {});
 
   const head = h("div", { class: "page-head" }, [
     h("button", { class: "back-link", onClick: () => (location.hash = "#/painel") }, "← Painel"),
@@ -93,6 +94,10 @@ export async function renderSettings(container) {
     ]),
   ]);
   container.appendChild(identCard);
+
+  // ---- Dados do recibo (nome completo, CPF, consultórios, numeração) ----
+  container.appendChild(h("h2", { style: "font-size:17px;color:var(--terracota);margin:26px 0 10px" }, "Dados do recibo"));
+  container.appendChild(reciboCard(s));
 
   // ---- Senha ----
   container.appendChild(h("h2", { style: "font-size:17px;color:var(--terracota);margin:26px 0 10px" }, "Senha de abertura (opcional)"));
@@ -184,6 +189,78 @@ export async function renderSettings(container) {
 }
 
 // Renderiza o cartão da integração Google (status + configuração + conectar).
+// Card "Dados do recibo": usados no texto e no rodapé do recibo em PDF.
+function reciboCard(s) {
+  const legalI = h("input", { type: "text", value: s.legal_name || "", placeholder: "Ex.: Thamires Cristina Benedito Ferreira" });
+  const cpfI = h("input", { type: "text", value: s.cpf || "", placeholder: "000.000.000-00" });
+  const nextI = h("input", { type: "number", min: "1", step: "1", value: s.receipt_next || 1 });
+  const nextHint = h("div", { class: "hint" }, "Use para continuar a numeração dos recibos feitos antes do app (ex.: 8). Depois do primeiro recibo, a numeração é automática.");
+  api.nextReceiptNumber().then((r) => {
+    if (r && r.has_receipts) {
+      nextI.value = r.next; nextI.disabled = true;
+      nextHint.textContent = `Numeração automática e contínua — o próximo recibo será o nº ${String(r.next).padStart(3, "0")}.`;
+    }
+  }).catch(() => {});
+  const lista = h("div", {});
+  const offices = (s.offices && s.offices.length) ? s.offices.map((o) => ({ ...o })) : [{ city: "", address: "", phone: "" }];
+
+  function linha(o, i) {
+    const cityI = h("input", { type: "text", value: o.city || "", placeholder: "Cidade (ex.: Ponte Nova - MG)" });
+    const addrI = h("input", { type: "text", value: o.address || "", placeholder: "Endereço completo" });
+    const phoneI = h("input", { type: "text", value: o.phone || "", placeholder: "(31) 90000-0000" });
+    cityI.addEventListener("input", () => { o.city = cityI.value; });
+    addrI.addEventListener("input", () => { o.address = addrI.value; });
+    phoneI.addEventListener("input", () => { o.phone = phoneI.value; });
+    return h("div", { class: "card", style: "padding:12px;margin-bottom:10px;background:var(--bg, #faf7f5)" }, [
+      h("div", { class: "form-row w-2" }, [
+        h("div", { class: "field" }, [h("label", {}, "Cidade"), cityI]),
+        h("div", { class: "field" }, [h("label", {}, "Telefone"), phoneI]),
+      ]),
+      h("div", { class: "field" }, [h("label", {}, "Endereço"), addrI]),
+      h("button", { class: "btn-ghost btn-sm", onClick: () => { offices.splice(i, 1); desenhar(); } }, "Remover consultório"),
+    ]);
+  }
+  function desenhar() {
+    lista.innerHTML = "";
+    offices.forEach((o, i) => lista.appendChild(linha(o, i)));
+  }
+  desenhar();
+
+  return h("div", { class: "card" }, [
+    h("div", { class: "hint", style: "margin-bottom:12px" },
+      "Aparecem no recibo em PDF: “Fulana, inscrita no CRP… e no CPF…”. A cidade escolhida no recibo define o endereço do rodapé."),
+    h("div", { class: "form-row w-2" }, [
+      h("div", { class: "field" }, [h("label", {}, "Nome completo"), legalI]),
+      h("div", { class: "field" }, [h("label", {}, "CPF"), cpfI]),
+    ]),
+    h("div", { class: "field" }, [
+      h("label", {}, "Número inicial dos recibos"), h("div", { style: "max-width:160px" }, nextI), nextHint,
+    ]),
+    h("div", { class: "field" }, [h("label", {}, "Consultórios"), lista,
+      h("button", { class: "btn-ghost btn-sm", onClick: () => { offices.push({ city: "", address: "", phone: "" }); desenhar(); } }, "＋ Adicionar consultório"),
+    ]),
+    h("div", { class: "form-actions" }, [
+      h("button", {
+        class: "btn",
+        onClick: async () => {
+          try {
+            const upd = await api.saveReceiptSettings({
+              legal_name: legalI.value.trim(),
+              cpf: cpfI.value.trim(),
+              receipt_next: nextI.disabled ? null : (parseInt(nextI.value, 10) || null),
+              offices: offices.filter((o) => (o.city || "").trim()).map((o) => ({
+                city: o.city.trim(), address: (o.address || "").trim(), phone: (o.phone || "").trim(),
+              })),
+            });
+            store.settings = { ...store.settings, ...upd };
+            toast("Dados do recibo salvos.", "ok");
+          } catch (e) { toast(e.message, "err"); }
+        },
+      }, "Salvar dados do recibo"),
+    ]),
+  ]);
+}
+
 async function renderGoogleCard(wrap) {
   let st;
   try { st = await api.googleStatus(); } catch { st = { available: false, configured: false, connected: false }; }

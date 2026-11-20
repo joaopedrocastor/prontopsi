@@ -24,6 +24,7 @@ export const api = {
   // settings
   getSettings: () => req("GET", "/api/settings"),
   saveSettings: (data) => req("PUT", "/api/settings", data),
+  saveReceiptSettings: (data) => req("PUT", "/api/settings/receipt", data),
   uploadLogo: (file) => { const fd = new FormData(); fd.append("file", file); return req("POST", "/api/settings/logo", fd, true); },
   removeLogo: () => req("DELETE", "/api/settings/logo"),
   setPassword: (password) => req("POST", "/api/settings/password", { password }),
@@ -98,9 +99,20 @@ export const api = {
   // relatórios
   reportsOverview: (months = 6) => req("GET", `/api/reports/overview?months=${months}`),
 
-  // documentos em PDF (recibo, declaração) — retornam a Response (blob)
-  reciboPdf: (data) => req("POST", "/api/doc-pdf/recibo", data),
+  // documentos em PDF (declaração) — retornam a Response (blob)
   declaracaoPdf: (data) => req("POST", "/api/doc-pdf/declaracao", data),
+
+  // recibos emitidos (salvos; numeração contínua automática)
+  listReceipts: (params = {}) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v != null && v !== "") q.set(k, v);
+    const qs = q.toString();
+    return req("GET", "/api/receipts" + (qs ? `?${qs}` : ""));
+  },
+  nextReceiptNumber: () => req("GET", "/api/receipts/next-number"),
+  createReceipt: (data) => req("POST", "/api/receipts", data),
+  updateReceipt: (id, data) => req("PUT", `/api/receipts/${id}`, data),
+  receiptPdf: (id) => req("GET", `/api/receipts/${id}/pdf`),
 
   // google agenda
   googleStatus: () => req("GET", "/api/google/status"),

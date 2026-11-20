@@ -77,7 +77,7 @@ export async function renderPainel(container) {
   await Promise.all([loadStats(statRow), loadUpcoming(document.getElementById("up-body"))]);
 }
 
-// Busca e preenche os 4 indicadores (clientes, sessões hoje, próximos 7 dias, rascunhos).
+// Busca e preenche os 4 indicadores (pacientes, sessões hoje, próximos 7 dias, rascunhos).
 async function loadStats(row) {
   const now = new Date();
   const startDay = new Date(now); startDay.setHours(0, 0, 0, 0);
@@ -96,7 +96,7 @@ async function loadStats(row) {
     h("div", { class: "st-label" }, label),
     h("div", { class: "st-value" }, String(value)),
   ]);
-  row.appendChild(stat("Clientes cadastrados", patients.length));
+  row.appendChild(stat("Pacientes cadastrados", patients.length));
   row.appendChild(stat("Sessões hoje", hoje.filter((a) => a.status !== "cancelada").length, true));
   row.appendChild(stat("Próximos 7 dias", semana.filter((a) => a.status !== "cancelada").length));
   row.appendChild(stat("Fichas em rascunho", rascunhos));

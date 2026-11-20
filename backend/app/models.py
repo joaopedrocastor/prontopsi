@@ -51,6 +51,14 @@ class Settings(Base):
     google_calendar_id: Mapped[str] = mapped_column(String(200), default="primary")
     google_timezone: Mapped[str] = mapped_column(String(60), default="America/Sao_Paulo")
 
+    # Dados do recibo: nome completo e CPF da profissional, consultorios
+    # (JSON: [{"city", "address", "phone"}] — a cidade escolhida no recibo
+    # define o endereco do rodape) e o proximo numero de recibo.
+    legal_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    cpf: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    offices: Mapped[str | None] = mapped_column(Text, nullable=True)
+    receipt_next: Mapped[int] = mapped_column(Integer, default=1)
+
     created_at: Mapped[str] = mapped_column(String(30), default=now_iso)
     updated_at: Mapped[str] = mapped_column(String(30), default=now_iso, onupdate=now_iso)
 
@@ -142,6 +150,34 @@ class Appointment(Base):
     # Evolucao clinica da sessao (prontuario). Preenchida apos a sessao.
     evolution: Mapped[str | None] = mapped_column(Text, nullable=True)
     google_event_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+
+    created_at: Mapped[str] = mapped_column(String(30), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(30), default=now_iso, onupdate=now_iso)
+
+    patient: Mapped["Patient | None"] = relationship()
+
+
+class Receipt(Base):
+    """Recibo emitido. Guardado para reabrir, corrigir e gerar o PDF de novo
+    (mantendo o mesmo número). A numeração é contínua e automática."""
+
+    __tablename__ = "receipts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    number: Mapped[int] = mapped_column(Integer, unique=True)
+    issued_on: Mapped[str] = mapped_column(String(10))  # data do recibo 'YYYY-MM-DD'
+    patient_id: Mapped[str | None] = mapped_column(
+        ForeignKey("patients.id", ondelete="SET NULL"), nullable=True
+    )
+    patient_name: Mapped[str] = mapped_column(String(200), default="")
+    payer: Mapped[str] = mapped_column(String(200), default="")
+    payer_cpf: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    payer_title: Mapped[str | None] = mapped_column(String(5), nullable=True)  # 'Sr.' | 'Sra.'
+    amount_cents: Mapped[int] = mapped_column(Integer, default=0)
+    sessions: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    session_dates: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
+    service: Mapped[str] = mapped_column(String(200), default="")
+    city: Mapped[str] = mapped_column(String(100), default="")
 
     created_at: Mapped[str] = mapped_column(String(30), default=now_iso)
     updated_at: Mapped[str] = mapped_column(String(30), default=now_iso, onupdate=now_iso)

@@ -3,6 +3,13 @@
 
 export const CHANGELOG = {
   "1.4.2": [
+    "Novo recibo de prestação de serviços psicológicos no padrão do seu modelo: logo, arcos decorativos, número do recibo e rodapé com o endereço do consultório.",
+    "O recibo já vem preenchido: responsável (nome, CPF, Sr./Sra.), paciente, valor por extenso, quantidade e dias das sessões — pode ser várias sessões de uma vez.",
+    "Escolha a cidade do consultório no recibo e o endereço do rodapé acompanha. Cadastre em Configuração → Dados do recibo.",
+    "Numeração dos recibos automática e contínua — você não precisa mais digitar o número.",
+    "Todo recibo gerado fica salvo em Recibos → Recibos emitidos: baixe o PDF de novo ou edite e gere novamente com o mesmo número.",
+    "No recibo, escolha o paciente numa lista com todos os cadastrados; os responsáveis dele aparecem para escolher quem pagou.",
+    "O menu Clientes agora se chama Pacientes.",
     "Correção: ao atualizar, a versão antiga instalada \"para todos os usuários\" é removida — fica apenas um ProntoPsi no computador (seus dados são mantidos).",
   ],
   "1.4.1": [

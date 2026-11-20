@@ -11,7 +11,7 @@ from datetime import date
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..models import FinanceEntry, Patient
+from ..models import Appointment, FinanceEntry, Patient
 
 _FIELDS = (
     "kind", "description", "category", "currency", "due_date",
@@ -27,7 +27,8 @@ def _cents(reais: float | None) -> int:
     return int(round((reais or 0) * 100))
 
 
-def _to_dict(e: FinanceEntry, patient_name: str | None = None) -> dict:
+def _to_dict(e: FinanceEntry, patient_name: str | None = None,
+             appointment_start: str | None = None) -> dict:
     return {
         "id": e.id,
         "kind": e.kind,
@@ -42,6 +43,8 @@ def _to_dict(e: FinanceEntry, patient_name: str | None = None) -> dict:
         "patient_id": e.patient_id,
         "patient_name": patient_name if patient_name is not None else (e.patient.name if e.patient else ""),
         "appointment_id": e.appointment_id,
+        # Dia da sessão vinculada (usado no recibo); None se não houver sessão.
+        "appointment_date": (appointment_start or "")[:10] or None,
         "notes": e.notes,
         "created_at": e.created_at,
         "updated_at": e.updated_at,
@@ -53,8 +56,10 @@ def list_entries(db: Session, kind: str | None = None, start: str | None = None,
                  category: str | None = None, patient_id: str | None = None,
                  recurring: bool | None = None) -> list[dict]:
     """Lista lancamentos filtrados por periodo (due_date em [start, end]) e demais campos."""
-    stmt = select(FinanceEntry, Patient.name).join(
-        Patient, FinanceEntry.patient_id == Patient.id, isouter=True
+    stmt = (
+        select(FinanceEntry, Patient.name, Appointment.start_at)
+        .join(Patient, FinanceEntry.patient_id == Patient.id, isouter=True)
+        .join(Appointment, FinanceEntry.appointment_id == Appointment.id, isouter=True)
     )
     if kind:
         stmt = stmt.where(FinanceEntry.kind == kind)
@@ -71,7 +76,7 @@ def list_entries(db: Session, kind: str | None = None, start: str | None = None,
     if recurring:
         stmt = stmt.where(FinanceEntry.recurrence != "nenhuma")
     stmt = stmt.order_by(FinanceEntry.due_date.desc())
-    return [_to_dict(e, name or "") for e, name in db.execute(stmt).all()]
+    return [_to_dict(e, name or "", start_at) for e, name, start_at in db.execute(stmt).all()]
 
 
 def get_entry(db: Session, entry_id: str) -> dict | None:

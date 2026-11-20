@@ -12,6 +12,14 @@ class SettingsIn(BaseModel):
     logo_includes_info: bool = False
 
 
+class Office(BaseModel):
+    """Consultório: a cidade escolhida no recibo define o endereço do rodapé."""
+
+    city: str = ""
+    address: str = ""
+    phone: str = ""
+
+
 class SettingsOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -24,8 +32,20 @@ class SettingsOut(BaseModel):
     has_password: bool = False
     recovery_email: str | None = None
     has_smtp: bool = False
+    # Dados do recibo
+    legal_name: str | None = None
+    cpf: str | None = None
+    offices: list[Office] = []
+    receipt_next: int = 1
     created_at: str
     updated_at: str
+
+
+class ReceiptSettingsIn(BaseModel):
+    legal_name: str | None = None
+    cpf: str | None = None
+    offices: list[Office] = []
+    receipt_next: int | None = None
 
 
 class RecoveryIn(BaseModel):
@@ -137,6 +157,7 @@ class FinanceEntryOut(BaseModel):
     patient_id: str | None = None
     patient_name: str = ""
     appointment_id: str | None = None
+    appointment_date: str | None = None
     notes: str | None = None
     created_at: str
     updated_at: str

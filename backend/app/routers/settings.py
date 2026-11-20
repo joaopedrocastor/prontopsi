@@ -7,8 +7,10 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..schemas import RecoveryIn, ResetConfirmIn, ResetRequestIn, SettingsIn, SettingsOut
-from ..services import settings_service
+from ..schemas import (
+    ReceiptSettingsIn, RecoveryIn, ResetConfirmIn, ResetRequestIn, SettingsIn, SettingsOut,
+)
+from ..services import receipts_service, settings_service
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -24,6 +26,10 @@ def _to_out(settings) -> SettingsOut:
         has_password=bool(settings.password_hash),
         recovery_email=settings.recovery_email,
         has_smtp=bool(settings.smtp_host and settings.smtp_port),
+        legal_name=settings.legal_name,
+        cpf=settings.cpf,
+        offices=settings_service.get_offices(settings),
+        receipt_next=settings.receipt_next or 1,
         created_at=settings.created_at,
         updated_at=settings.updated_at,
     )
@@ -42,6 +48,21 @@ def update_settings(payload: SettingsIn, db: Session = Depends(get_db)):
         professional_title=payload.professional_title,
         crp=payload.crp,
         logo_includes_info=payload.logo_includes_info,
+    )
+    return _to_out(settings)
+
+
+@router.put("/receipt", response_model=SettingsOut)
+def update_receipt_settings(payload: ReceiptSettingsIn, db: Session = Depends(get_db)):
+    # O número inicial só vale antes do primeiro recibo: depois a numeração é
+    # contínua e automática (não pode voltar nem pular manualmente).
+    inicial = None if receipts_service.has_receipts(db) else payload.receipt_next
+    settings = settings_service.update_receipt_settings(
+        db,
+        legal_name=payload.legal_name,
+        cpf=payload.cpf,
+        offices=[o.model_dump() for o in payload.offices],
+        receipt_next=inicial,
     )
     return _to_out(settings)
 

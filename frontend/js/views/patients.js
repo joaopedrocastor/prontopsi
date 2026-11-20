@@ -1,4 +1,4 @@
-// Módulo Clientes: listagem em tabela e "Ficha de Cliente" completa
+// Módulo Pacientes: listagem em tabela e "Ficha de Paciente" completa
 // (Principal + timeline, Cadastro, Anamnese, Sessões, Documentos, Financeiro).
 
 import { api } from "../api.js";
@@ -8,7 +8,7 @@ import { h, clear, toast, confirmar, modal, iniciais, fmtData, calcIdade, fmtDat
 import { exportarFicha } from "./export.js";
 import { gerarRecibo, gerarDeclaracao } from "../documents.js";
 
-// Situações possíveis do cliente (rótulo + cores do badge).
+// Situações possíveis do paciente (rótulo + cores do badge).
 const STATUS = {
   ativo: { label: "Ativo", bg: "#E1F1E9", fg: "#2E8B63" },
   espera: { label: "Lista de espera", bg: "#FBECD9", fg: "#C8791E" },
@@ -29,9 +29,9 @@ export async function renderPatients(container) {
   const nova = queryParams().nova === "1";
 
   container.appendChild(h("div", { class: "page-head" }, [
-    h("h1", {}, nova ? "Nova anamnese — escolha o cliente" : "Clientes"),
+    h("h1", {}, nova ? "Nova anamnese — escolha o paciente" : "Pacientes"),
     h("div", { class: "spacer" }),
-    h("button", { class: "btn", onClick: () => (location.hash = "#/paciente/novo" + (nova ? "?nova=1" : "")) }, "＋ Adicionar cliente"),
+    h("button", { class: "btn", onClick: () => (location.hash = "#/paciente/novo" + (nova ? "?nova=1" : "")) }, "＋ Adicionar paciente"),
   ]));
 
   const statusSel = h("select", { style: "width:auto;min-width:180px" }, [
@@ -54,7 +54,7 @@ export async function renderPatients(container) {
     if (!patients.length) {
       tableWrap.appendChild(h("div", { class: "empty" }, [
         h("div", { class: "empty-icon" }, "👥"),
-        h("div", {}, search.value || statusSel.value !== "todos" ? "Nenhum cliente encontrado." : "Nenhum cliente cadastrado ainda."),
+        h("div", {}, search.value || statusSel.value !== "todos" ? "Nenhum paciente encontrado." : "Nenhum paciente cadastrado ainda."),
       ]));
       return;
     }
@@ -91,7 +91,7 @@ function clientTable(patients, nova) {
     ]);
   });
   const table = h("table", { class: "ctable" }, [
-    h("thead", {}, h("tr", {}, ["Nome do cliente", "Status", "E-mail", "Telefone", "Data de cadastro", "Ações"].map((t) => h("th", {}, t)))),
+    h("thead", {}, h("tr", {}, ["Nome do paciente", "Status", "E-mail", "Telefone", "Data de cadastro", "Ações"].map((t) => h("th", {}, t)))),
     h("tbody", {}, rows),
   ]);
   return h("div", { class: "table-wrap" }, [table]);
@@ -106,7 +106,7 @@ export async function renderPatientForm(container, id) {
 
   container.appendChild(h("div", { class: "page-head" }, [
     h("button", { class: "back-link", onClick: back }, "← Voltar"),
-    h("h1", {}, id ? "Editar cliente" : "Novo cliente"),
+    h("h1", {}, id ? "Editar paciente" : "Novo paciente"),
   ]));
 
   const form = buildPatientForm(p);
@@ -117,10 +117,10 @@ export async function renderPatientForm(container, id) {
         class: "btn",
         onClick: async () => {
           const data = form.getData();
-          if (!data.name) { toast("Informe o nome do cliente.", "err"); return; }
+          if (!data.name) { toast("Informe o nome do paciente.", "err"); return; }
           try {
             const saved = id ? await api.updatePatient(id, data) : await api.createPatient(data);
-            toast("Cliente salvo.", "ok");
+            toast("Paciente salvo.", "ok");
             if (nova && !id) { const a = await api.createAnamnesis(saved.id); location.hash = "#/ficha/" + a.id; }
             else location.hash = "#/paciente/" + saved.id;
           } catch (e) { toast(e.message, "err"); }
@@ -183,7 +183,7 @@ function buildPatientForm(p) {
   return { node, getData };
 }
 
-// ==================== Ficha de Cliente (detalhe) ====================
+// ==================== Ficha de Paciente (detalhe) ====================
 const SECOES = [
   { id: "principal", label: "Principal", icon: "👤" },
   { id: "cadastro", label: "Cadastro", icon: "📝" },
@@ -204,19 +204,19 @@ export async function renderPatientDetail(container, id) {
   let current = queryParams().sec || "principal";
 
   container.appendChild(h("div", { class: "page-head" }, [
-    h("button", { class: "back-link", onClick: () => (location.hash = "#/pacientes") }, "← Clientes"),
+    h("button", { class: "back-link", onClick: () => (location.hash = "#/pacientes") }, "← Pacientes"),
     h("div", { class: "spacer" }),
     h("button", {
       class: "btn-danger btn-sm",
       onClick: async () => {
-        if (!(await confirmar({ title: "Excluir cliente", message: `Excluir "${p.name}" e todas as suas fichas, sessões e documentos? Não pode ser desfeito.`, okLabel: "Excluir", danger: true }))) return;
-        try { await api.deletePatient(id); toast("Cliente excluído.", "ok"); location.hash = "#/pacientes"; }
+        if (!(await confirmar({ title: "Excluir paciente", message: `Excluir "${p.name}" e todas as suas fichas, sessões e documentos? Não pode ser desfeito.`, okLabel: "Excluir", danger: true }))) return;
+        try { await api.deletePatient(id); toast("Paciente excluído.", "ok"); location.hash = "#/pacientes"; }
         catch (e) { toast(e.message, "err"); }
       },
     }, "🗑 Excluir"),
   ]));
 
-  // Cabeçalho do cliente
+  // Cabeçalho do paciente
   container.appendChild(h("div", { class: "cli-head" }, [
     h("span", { class: "avatar lg" }, iniciais(p.name)),
     h("div", {}, [
@@ -356,7 +356,7 @@ async function secCadastro(content, id, reload) {
   await renderGuardians(guardWrap, id);
 }
 
-// Lista de responsáveis do cliente com adicionar/editar/excluir.
+// Lista de responsáveis do paciente com adicionar/editar/excluir.
 async function renderGuardians(wrap, patientId) {
   clear(wrap);
   wrap.appendChild(h("div", { class: "section-progress" }, [
@@ -416,7 +416,7 @@ function guardianModal(patientId, g, reload) {
   });
 }
 
-// ----- Anamnese (fichas do cliente) -----
+// ----- Anamnese (fichas do paciente) -----
 async function secAnamnese(content, id, p) {
   content.appendChild(h("div", { class: "section-progress" }, [
     h("h2", { style: "font-size:17px;color:var(--navy);margin:0" }, "Fichas de anamnese"),
@@ -513,7 +513,7 @@ function openEvolutionEditor(appt, reload) {
     title: "Evolução — " + quando,
     content: h("div", {}, [
       h("div", { class: "field" }, [h("label", {}, "Registro clínico"), textI]),
-      h("p", { class: "muted", style: "font-size:12px;margin:0" }, "Fica no prontuário do cliente e junto da sessão na agenda."),
+      h("p", { class: "muted", style: "font-size:12px;margin:0" }, "Fica no prontuário do paciente e junto da sessão na agenda."),
     ]),
     actions: [
       { label: "Cancelar", class: "btn-ghost" },
@@ -555,12 +555,12 @@ async function secDocumentos(content, id) {
   }
 }
 
-// ----- Financeiro do cliente (lançamentos ligados a este paciente) -----
+// ----- Financeiro do paciente (lançamentos ligados a este paciente) -----
 async function secFinanceiro(content, id, p) {
   const refresh = () => secFinanceiro(clearReturn(content), id, p);
 
   content.appendChild(h("div", { class: "section-progress" }, [
-    h("h2", { style: "font-size:17px;color:var(--navy);margin:0" }, "Financeiro do cliente"),
+    h("h2", { style: "font-size:17px;color:var(--navy);margin:0" }, "Financeiro do paciente"),
     h("div", { style: "display:flex;gap:8px" }, [
       h("button", { class: "btn", onClick: () => cobrancaModal(id, p, null, refresh) }, "＋ Cobrança"),
       h("button", { class: "btn-ghost btn-sm", onClick: () => (location.hash = "#/financeiro") }, "Abrir Financeiro"),
@@ -570,7 +570,7 @@ async function secFinanceiro(content, id, p) {
   let items = [];
   try { items = await api.listFinance({ patient_id: id }); } catch (e) { toast(e.message, "err"); return; }
 
-  // Totais (só receitas: cobranças do cliente).
+  // Totais (só receitas: cobranças do paciente).
   const rec = items.filter((e) => e.kind === "receita");
   const recebido = rec.filter((e) => e.paid).reduce((s, e) => s + e.amount, 0);
   const aberto = rec.filter((e) => !e.paid).reduce((s, e) => s + e.amount, 0);
@@ -581,7 +581,7 @@ async function secFinanceiro(content, id, p) {
   ]));
 
   if (!items.length) {
-    content.appendChild(h("div", { class: "empty" }, [h("div", { class: "empty-icon" }, "💰"), h("div", { class: "muted" }, "Nenhuma cobrança lançada para este cliente.")]));
+    content.appendChild(h("div", { class: "empty" }, [h("div", { class: "empty-icon" }, "💰"), h("div", { class: "muted" }, "Nenhuma cobrança lançada para este paciente.")]));
     return;
   }
 
@@ -601,7 +601,7 @@ async function secFinanceiro(content, id, p) {
       h("span", { style: `font-weight:700;color:${e.kind === "receita" ? "var(--ok)" : "var(--accent)"}` }, (e.kind === "receita" ? "+ " : "− ") + fmtMoeda(e.amount)),
       h("div", { class: "li-actions" }, [
         h("button", { class: "btn-ghost btn-sm", title: e.paid ? "Marcar não pago" : "Marcar pago", onClick: async () => { try { await api.updateFinance(e.id, { paid: !e.paid }); refresh(); } catch (err) { toast(err.message, "err"); } } }, e.paid ? "↩" : "✓"),
-        e.kind === "receita" ? h("button", { class: "btn-ghost btn-sm", title: "Gerar recibo", onClick: () => gerarRecibo({ patient_id: id, payer: p.name, amount: e.amount, reference: e.description || "atendimento psicológico" }) }, "Recibo") : null,
+        e.kind === "receita" ? h("button", { class: "btn-ghost btn-sm", title: "Gerar recibo", onClick: () => gerarRecibo({ patient_id: id, amount: e.amount, dates: [e.appointment_date || e.due_date] }) }, "Recibo") : null,
         h("button", { class: "btn-ghost btn-sm", onClick: () => cobrancaModal(id, p, e, refresh) }, "✎"),
         h("button", { class: "btn-ghost btn-sm", onClick: async () => { if (await confirmar({ title: "Excluir lançamento", message: "Excluir esta cobrança?", okLabel: "Excluir", danger: true })) { await api.deleteFinance(e.id); refresh(); } } }, "🗑"),
       ]),

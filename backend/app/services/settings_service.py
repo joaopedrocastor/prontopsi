@@ -5,6 +5,7 @@ Sem nenhuma dependencia de FastAPI ou da interface (camada de servico).
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import secrets
 import smtplib
@@ -43,6 +44,67 @@ def update_settings(db: Session, *, professional_name: str, professional_title: 
     db.commit()
     db.refresh(settings)
     return settings
+
+
+# Consultórios sugeridos enquanto a lista nunca foi salva (offices = NULL).
+# Depois que a usuária salva "Dados do recibo", vale só o que ela cadastrou
+# (inclusive lista vazia).
+DEFAULT_OFFICES = [
+    {"city": "Ponte Nova - MG",
+     "address": "Travessa Mário Bonfati, 01, 407 - Centro, Ponte Nova - MG",
+     "phone": "(31) 98974-0737"},
+    {"city": "Barra Longa - MG",
+     "address": "Rua Monsenhor Hort, 04, Loja 01 - Centro - Barra Longa- MG",
+     "phone": "(31) 98974-0737"},
+]
+
+
+def get_offices(settings: Settings) -> list[dict]:
+    """Consultórios cadastrados (lista de {city, address, phone})."""
+    if settings.offices is None:
+        return [dict(o) for o in DEFAULT_OFFICES]
+    try:
+        data = json.loads(settings.offices or "[]")
+    except (ValueError, TypeError):
+        return []
+    out = []
+    for o in data if isinstance(data, list) else []:
+        if isinstance(o, dict) and (o.get("city") or "").strip():
+            out.append({"city": (o.get("city") or "").strip(),
+                        "address": (o.get("address") or "").strip(),
+                        "phone": (o.get("phone") or "").strip()})
+    return out
+
+
+def find_office(settings: Settings, city: str) -> dict | None:
+    """Consultório pela cidade (sem diferenciar maiúsculas/acentos de espaço)."""
+    alvo = (city or "").strip().lower()
+    for o in get_offices(settings):
+        if o["city"].lower() == alvo:
+            return o
+    return None
+
+
+def update_receipt_settings(db: Session, *, legal_name: str | None, cpf: str | None,
+                            offices: list[dict], receipt_next: int | None) -> Settings:
+    settings = get_settings(db)
+    settings.legal_name = (legal_name or "").strip() or None
+    settings.cpf = (cpf or "").strip() or None
+    limpos = [o for o in offices if (o.get("city") or "").strip()]
+    settings.offices = json.dumps(limpos, ensure_ascii=False)
+    if receipt_next and receipt_next > 0:
+        settings.receipt_next = int(receipt_next)
+    db.commit()
+    db.refresh(settings)
+    return settings
+
+
+def register_receipt_number(db: Session, number: int) -> None:
+    """Após emitir o recibo nº N, o próximo sugerido passa a ser N+1 (nunca volta)."""
+    settings = get_settings(db)
+    if number and number >= (settings.receipt_next or 1):
+        settings.receipt_next = number + 1
+        db.commit()
 
 
 def save_logo(db: Session, *, filename: str, content: bytes) -> Settings:
