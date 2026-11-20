@@ -2,6 +2,9 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.4.2": [
+    "Correção: ao atualizar, a versão antiga instalada \"para todos os usuários\" é removida — fica apenas um ProntoPsi no computador (seus dados são mantidos).",
+  ],
   "1.4.1": [
     "Novo menu Recibos: veja os pagamentos recebidos no mês e gere o recibo em PDF de cada um em 1 clique.",
     "Recibo do mês por cliente: soma todas as sessões pagas no mês em um único recibo (ótimo para reembolso).",

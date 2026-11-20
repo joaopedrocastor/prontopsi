@@ -2,7 +2,7 @@
 
 Documento de continuidade do projeto. Objetivo: qualquer pessoa (ou uma nova
 sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
-2026-11-20. **Versão atual: 1.4.1.**
+2026-11-20. **Versão atual: 1.4.2.**
 
 > O histórico detalhado, voltado à usuária, fica em `frontend/js/changelog.js`.
 
@@ -31,6 +31,9 @@ sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
   como release — foi direto para a 1.4.1.)
 - **1.4.1** — menu **Recibos** (`views/receipts.js`): pagamentos recebidos do
   mês, recibo por pagamento, recibo mensal por cliente e recibo avulso.
+- **1.4.2** — instalador remove a instalação antiga "para todos os usuários"
+  (HKLM/Program Files, das versões ≤1.3.x) para não ficarem 2 ProntoPsi;
+  `RELEASES_REPO` aponta para `eleuterioautomacao/prontopsi-releases`.
 
 > **Cache e porta:** o app sobe em **porta aleatória** a cada abertura, então o
 > WebView sempre carrega JS/CSS frescos (sem cache velho após atualizar). No
@@ -400,8 +403,11 @@ Backend pronto (`google_service.py`). Para funcionar, a usuária precisa:
 - Preview local (dev): entrada `anamnese` (porta 8799) em
   `.claude/launch.json` na raiz do repositório.
 - **Auto-update**: o instalador é per-user (`PrivilegesRequired=lowest`) e usa
-  `AppMutex` para fechar o app antes de trocar o `.exe`. Quem instalou uma
-  versão antiga como admin (Program Files) pode precisar reinstalar uma vez.
+  `AppMutex` para fechar o app antes de trocar o `.exe`. Versões ≤1.3.x podiam
+  ser instaladas "para todos os usuários" (HKLM, Program Files) — o `[Code]`
+  do `installer.iss` detecta essa instalação e roda o desinstalador antigo com
+  elevação (1 UAC) antes de instalar. Os dados ficam em `%LOCALAPPDATA%` e não
+  são tocados.
 - `.exe` não é assinado → SmartScreen mostra aviso ("Mais informações →
   Executar assim mesmo"). Normal.
 
