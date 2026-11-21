@@ -2,7 +2,7 @@
 
 Documento de continuidade do projeto. Objetivo: qualquer pessoa (ou uma nova
 sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
-2026-11-20. **Versão atual: 1.4.3.**
+2026-11-21. **Versão atual: 1.4.4.**
 
 > O histórico detalhado, voltado à usuária, fica em `frontend/js/changelog.js`.
 
@@ -57,6 +57,19 @@ sessão de IA) conseguir retomar **sem perder contexto**. Última atualização:
   pywebview) e "Ver no GitHub" (página da release); se o auto-update falhar,
   abre o GitHub. Obs.: o aviso só aparece se a tag for **maior** que a versão
   instalada — nunca republique builds diferentes com o mesmo número.
+- **1.4.4** — **downloads**: pywebview 6 ignora `<a download>`; `store.salvarArquivo`
+  manda o arquivo (base64) para `Bridge.save_download`, que grava na pasta
+  Downloads (FOLDERID_Downloads, sem sobrescrever). `baixar(url)` e
+  `documents.baixarPdf` usam isso (recibo, declaração, ficha, anexos).
+  **Auto-update corrigido**: o `cmd /c` antigo quebrava as aspas (o instalador
+  nunca rodava); agora `run.py` grava `aplicar-atualizacao.ps1` em
+  `%TEMP%\ProntoPsi-Update`, que espera o app fechar, roda o instalador com
+  `/SILENT` (janela de progresso) e `/LOG`, e reabre o app mesmo se falhar
+  (trace em `update-trace.txt`). Barra de progresso via
+  `Bridge.update_progress`. Máscaras `maskCpf`/`maskMoney` em `util.js`;
+  qtd. de sessões do recibo = nº de dias. Logo sempre a oficial
+  (`resolve_logo_path`); envio de logo removido da Configuração. Ficha PDF
+  com cabeçalho compacto e seções curtas juntas (`KeepTogether`).
 
 > **Cache e porta:** o app sobe em **porta aleatória** a cada abertura, então o
 > WebView sempre carrega JS/CSS frescos (sem cache velho após atualizar). No

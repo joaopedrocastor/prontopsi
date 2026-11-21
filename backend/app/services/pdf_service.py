@@ -43,11 +43,11 @@ PONTILHADO = HexColor("#C9B8AE")
 
 PAGE_W, PAGE_H = A4
 MARGIN = 42
-TOP_MARGIN = 134
+TOP_MARGIN = 104   # cabeçalho compacto (logo menor)
 BOTTOM_MARGIN = 46
 CONTENT_W = PAGE_W - 2 * MARGIN
-LINE_H = 18.0
-FIELD_SIZE = 11.0   # tamanho dos rotulos/valores dos campos
+LINE_H = 17.0
+FIELD_SIZE = 10.5   # tamanho dos rotulos/valores dos campos
 HINT_SIZE = 9.0
 
 _FONTS_READY = False
@@ -120,9 +120,9 @@ class SectionPill(Flowable):
     def __init__(self, title: str):
         super().__init__()
         self.title = title.upper()
-        self.size = 12.5
-        self.pad_x = 16
-        self.h = 26
+        self.size = 11
+        self.pad_x = 14
+        self.h = 22
 
     def wrap(self, avail_w, avail_h):
         self.width = avail_w
@@ -183,7 +183,8 @@ class FieldFlowable(Flowable):
     def wrap(self, avail_w, avail_h):
         self.width = avail_w
         size = FIELD_SIZE
-        label_txt = f"{self.label}:"
+        # Não duplica pontuação: "Paciente está em acompanhamento?" (sem ":").
+        label_txt = self.label if self.label.rstrip().endswith(("?", ":")) else f"{self.label}:"
         label_w = pdfmetrics.stringWidth(label_txt + " ", F_SEMI, size)
         value = self._display_value()
         block = self._is_block()
@@ -203,8 +204,9 @@ class FieldFlowable(Flowable):
                 value_lines = _wrap(value, F_REG, size, CONTENT_W, CONTENT_W)
                 n = max(len(value_lines), 1)
             else:
+                # Vazio: poucas linhas (antes eram até 5, sobrando espaço).
                 value_lines = []
-                n = self.rows
+                n = min(self.rows, 2)
             for i in range(n):
                 txt = value_lines[i] if i < len(value_lines) else ""
                 lines.append({"kind": "value", "text": txt, "x": 0, "dotted": True})
@@ -282,28 +284,28 @@ def _make_header(settings: Settings):
 
     def draw(canvas, doc):
         canvas.saveState()
-        top = PAGE_H - 26
-        sep_y = PAGE_H - 118
+        top = PAGE_H - 24
+        sep_y = PAGE_H - 86
         text_x = MARGIN
 
         # Selo "Ficha de Anamnese" (direita)
-        seal_w, seal_h = 132, 54
+        seal_w, seal_h = 108, 42
         seal_x = PAGE_W - MARGIN - seal_w
         seal_y = top - seal_h
         canvas.setFillColor(TERRACOTA)
-        canvas.roundRect(seal_x, seal_y, seal_w, seal_h, 11, stroke=0, fill=1)
+        canvas.roundRect(seal_x, seal_y, seal_w, seal_h, 9, stroke=0, fill=1)
         canvas.setFillColor(HexColor("#FFFFFF"))
-        canvas.setFont(F_MED, 10)
-        canvas.drawCentredString(seal_x + seal_w / 2, seal_y + seal_h - 19, "Ficha de")
-        canvas.setFont(F_SEMI, 16)
-        canvas.drawCentredString(seal_x + seal_w / 2, seal_y + 11, "Anamnese")
+        canvas.setFont(F_MED, 8.5)
+        canvas.drawCentredString(seal_x + seal_w / 2, seal_y + seal_h - 15, "Ficha de")
+        canvas.setFont(F_SEMI, 13)
+        canvas.drawCentredString(seal_x + seal_w / 2, seal_y + 9, "Anamnese")
 
         # Logo (esquerda) — maior; maior ainda quando ja contem o texto.
         if have_logo:
             if logo_only:
-                max_h, max_w = 88.0, seal_x - MARGIN - 16
+                max_h, max_w = 50.0, 220.0
             else:
-                max_h, max_w = 74.0, 210.0
+                max_h, max_w = 46.0, 160.0
             scale = min(max_h / logo_dims[1], max_w / logo_dims[0])
             lw, lh = logo_dims[0] * scale, logo_dims[1] * scale
             band_mid = (top + sep_y) / 2
@@ -331,7 +333,7 @@ def _make_header(settings: Settings):
 
         # Separador
         canvas.setStrokeColor(TERRACOTA)
-        canvas.setLineWidth(1.3)
+        canvas.setLineWidth(1)
         canvas.line(MARGIN, sep_y, PAGE_W - MARGIN, sep_y)
 
         # Rodape: numero da pagina
@@ -372,11 +374,15 @@ def build_pdf(anamnesis: Anamnesis, patient: Patient, settings: Settings) -> byt
     story: list = []
     for section in SECTIONS:
         pill = SectionPill(section["title"])
-        first = section["fields"][0]
-        # Mantem a pilula junto do primeiro campo (evita titulo orfao no rodape).
-        story.append(KeepTogether([pill, Spacer(1, 3), FieldFlowable(first, data)]))
-        for field in section["fields"][1:]:
-            story.append(FieldFlowable(field, data))
+        fields = [FieldFlowable(f, data) for f in section["fields"]]
+        if len(fields) <= 5:
+            # Seção curta: inteira na mesma página (não deixa campos soltos
+            # no topo da página seguinte, longe do título).
+            story.append(KeepTogether([pill, Spacer(1, 3), *fields]))
+        else:
+            # Mantém o título junto dos 2 primeiros campos (sem título órfão).
+            story.append(KeepTogether([pill, Spacer(1, 3), *fields[:2]]))
+            story.extend(fields[2:])
         story.append(Spacer(1, 10))
 
     doc.build(story)

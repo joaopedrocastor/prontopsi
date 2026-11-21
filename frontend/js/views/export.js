@@ -2,7 +2,7 @@
 // Tambem a tela "Exportar PDF" da home (escolher ficha da lista).
 
 import { api } from "../api.js";
-import { escolherSalvar, hasBridge, baixar } from "../store.js";
+import { baixar } from "../store.js";
 import { h, clear, toast, modal, fmtDataHora } from "../util.js";
 
 function slug(s) {
@@ -40,17 +40,15 @@ export async function exportarFicha(id) {
   doExport(id, nome);
 }
 
+// Gera o PDF da ficha e salva direto na pasta Downloads (sempre PDF).
 async function doExport(id, nome) {
   const sug = `anamnese_${slug(nome) || "ficha"}.pdf`;
-  const path = await escolherSalvar(sug, "PDF");
-  if (path) {
-    try { const r = await api.savePdf(id, path); toast("PDF salvo em: " + r.path, "ok"); }
-    catch (e) { toast(e.message, "err"); }
-  } else if (!hasBridge()) {
-    baixar(api.pdfUrl(id), sug);
-    toast("Gerando PDF...", "ok");
-  }
-  // desktop com dialogo cancelado: nao faz nada.
+  toast("Gerando PDF...", "");
+  try {
+    const path = await baixar(api.pdfUrl(id), sug);
+    const arquivo = path ? path.split(/[\\/]/).pop() : sug;
+    toast(`PDF salvo na pasta Downloads: ${arquivo}`, "ok");
+  } catch (e) { toast(e.message || "Falha ao gerar o PDF.", "err"); }
 }
 
 // ---- Tela "Exportar PDF" (lista todas as fichas) ----

@@ -293,6 +293,16 @@ textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
 .update-banner .update-text { flex: 1; min-width: 240px; }
 .update-banner strong { color: var(--accent); }
 .update-banner .update-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.upd-bar { position: relative; height: 14px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.upd-fill { height: 100%; width: 0; background: linear-gradient(90deg, #F0801A, var(--accent)); border-radius: 999px; transition: width .3s ease; }
+.upd-bar.upd-indet .upd-fill { background: repeating-linear-gradient(45deg, #F0801A 0 14px, var(--accent) 14px 28px); background-size: 40px 40px; animation: upd-move 1s linear infinite; }
+@keyframes upd-move { from { background-position: 0 0; } to { background-position: 40px 0; } }
+.upd-detail { font-size: 13px; color: var(--muted, #7a6a60); margin-top: 6px; min-height: 18px; }
+.upd-steps { margin: 14px 0 0; padding-left: 22px; font-size: 14px; color: var(--muted, #7a6a60); }
+.upd-steps li { margin: 4px 0; }
+.upd-steps li.on { color: var(--accent); font-weight: 600; }
+.upd-steps li.ok { color: var(--ok, #2e7d32); }
+.upd-steps li.ok::after { content: " ✓"; }
 .notice strong { color: var(--primary-dark); }
 
 /* ---------- Clientes: tabela ---------- */

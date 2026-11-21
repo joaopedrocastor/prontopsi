@@ -105,3 +105,45 @@ export function confirmar({ title = "Confirmar", message, okLabel = "Confirmar",
     });
   });
 }
+
+// ---- Máscaras de digitação ----
+// CPF: 000.000.000-00 (aceita colar com ou sem pontos/traço).
+export function formatCpf(v) {
+  const d = String(v || "").replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+export function maskCpf(input) {
+  input.setAttribute("inputmode", "numeric");
+  input.setAttribute("maxlength", "14");
+  input.placeholder = input.placeholder || "000.000.000-00";
+  const aplicar = () => { input.value = formatCpf(input.value); };
+  input.addEventListener("input", aplicar);
+  aplicar();
+  return input;
+}
+
+// Dinheiro: digita só números e a vírgula/pontos se ajustam (12000 -> 120,00;
+// 123456 -> 1.234,56). moneyValue() devolve o número (ex.: 1234.56).
+export function formatMoney(n) {
+  const v = Number(n) || 0;
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+export function moneyValue(input) {
+  const d = String(input.value || "").replace(/\D/g, "");
+  return d ? parseInt(d, 10) / 100 : 0;
+}
+export function maskMoney(input, valorInicial) {
+  input.type = "text";
+  input.setAttribute("inputmode", "numeric");
+  input.placeholder = "0,00";
+  const aplicar = () => {
+    const d = input.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 11);
+    input.value = d ? formatMoney(parseInt(d, 10) / 100) : "";
+  };
+  input.addEventListener("input", aplicar);
+  if (valorInicial != null && valorInicial !== "") input.value = formatMoney(valorInicial);
+  return input;
+}

@@ -77,13 +77,9 @@ export function refreshHeader() {
   const badge = document.getElementById("prof-badge");
   const nome = s.professional_name || "";
   const av = iniciais(nome || "PP");
-  if (s.logo_path) {
-    mini.innerHTML = `<img src="/api/settings/logo/image?t=${Date.now()}" alt=""><span>${escapeHtml(nome)}</span>`;
-    badge.innerHTML = `<img src="/api/settings/logo/image?t=${Date.now()}" alt="">`;
-  } else {
-    mini.innerHTML = `<span class="cm-badge">${av}</span><span>${escapeHtml(nome || "Consultório")}</span>`;
-    badge.innerHTML = `<span class="pb-av">${av}</span><span>${escapeHtml(nome || "")}</span>`;
-  }
+  // Logo é sempre a oficial (barra lateral); aqui só as iniciais e o nome.
+  mini.innerHTML = `<span class="cm-badge">${av}</span><span>${escapeHtml(nome || "Consultório")}</span>`;
+  badge.innerHTML = `<span class="pb-av">${av}</span><span>${escapeHtml(nome || "")}</span>`;
 }
 
 function escapeHtml(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }

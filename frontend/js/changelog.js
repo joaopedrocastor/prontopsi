@@ -2,6 +2,14 @@
 // Ao lançar uma versão nova, adicione a lista de mudanças aqui.
 
 export const CHANGELOG = {
+  "1.4.4": [
+    "Correção: os PDFs (recibo, declaração, ficha e anexos) agora são salvos automaticamente na pasta Downloads do computador.",
+    "Recibo: CPF já sai no formato 000.000.000-00 e o valor se ajusta enquanto você digita (ex.: 1.234,56).",
+    "Recibo: a quantidade de sessões é calculada sozinha pelos dias informados.",
+    "Ficha de anamnese em PDF mais enxuta: logo e cabeçalho menores, menos linhas em branco e seções curtas sem quebrar de página.",
+    "Configuração mais simples: a logo é sempre a oficial (saiu o envio de logo) e o CPF tem o formato automático.",
+    "Atualização em 1 clique corrigida, com barra de progresso: o app baixa, instala e reabre sozinho.",
+  ],
   "1.4.3": [
     "Aviso de atualização em destaque: quando sair uma versão nova, aparece uma faixa no topo de todas as telas com os botões \"Atualizar agora\" e \"Ver no GitHub\".",
     "O app verifica novas versões ao abrir e a cada 3 horas (mesmo se ficar aberto o dia todo).",

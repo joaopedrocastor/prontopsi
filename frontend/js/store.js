@@ -10,12 +10,10 @@ export async function loadSettings() {
   return store.settings;
 }
 
-// Consultório está configurado se tiver nome+CRP OU uma logo que já inclui esses dados.
+// Os documentos usam sempre a logo oficial, que já traz nome, título e CRP —
+// então o consultório está sempre "configurado" para a identidade visual.
 export function isConfigured() {
-  const s = store.settings;
-  if (!s) return false;
-  if (s.logo_path && s.logo_includes_info) return true;
-  return !!(s.professional_name && s.crp);
+  return !!store.settings;
 }
 
 // ---- Ponte pywebview ----
@@ -60,9 +58,50 @@ export function openExternal(url) {
   }
 }
 
-// Baixa uma URL como arquivo (fallback do navegador).
-export function baixar(url, filename) {
+function blobParaBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",")[1] || "");
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
+// Salva um arquivo na pasta Downloads do computador.
+// No app (pywebview) a janela não faz downloads: a ponte grava o arquivo em
+// Downloads e devolve o caminho. No navegador, usa o download normal.
+export async function salvarArquivo(blob, filename) {
+  const nome = filename || "arquivo";
+  if (hasBridge() && window.pywebview.api.save_download) {
+    const r = await window.pywebview.api.save_download(nome, await blobParaBase64(blob));
+    if (!r || !r.ok) throw new Error((r && r.error) || "Não foi possível salvar o arquivo.");
+    return r.path;
+  }
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = filename || "";
+  a.href = url; a.download = nome;
   document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return null;
+}
+
+// Nome do arquivo a partir do cabeçalho Content-Disposition da resposta.
+export function nomeDoArquivo(res, fallback) {
+  const cd = res.headers.get("content-disposition") || "";
+  const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)/i);
+  if (!m) return fallback;
+  try { return decodeURIComponent(m[1]); } catch { return m[1]; }
+}
+
+// Baixa uma URL do app para a pasta Downloads. Retorna o caminho salvo (app)
+// ou null (navegador). Mostra o aviso de onde ficou.
+export async function baixar(url, filename) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    let msg = "Falha ao baixar o arquivo.";
+    try { const j = await res.json(); if (j && j.detail) msg = j.detail; } catch {}
+    throw new Error(msg);
+  }
+  const nome = nomeDoArquivo(res, filename);
+  return salvarArquivo(await res.blob(), nome);
 }

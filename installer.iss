@@ -6,8 +6,8 @@
 ;   1) Gerar o executável:   .venv\Scripts\pyinstaller anamnese.spec
 ;   2) Instalar o Inno Setup: https://jrsoftware.org/isdl.php
 ;   3) Compilar (passe a versão):
-;        ISCC /DAppVersion=1.4.3 installer.iss
-; Resultado: Output\ProntoPsi-Setup-1.4.3.exe
+;        ISCC /DAppVersion=1.4.4 installer.iss
+; Resultado: Output\ProntoPsi-Setup-1.4.4.exe
 
 #define AppName "ProntoPsi"
 #ifndef AppVersion

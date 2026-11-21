@@ -150,18 +150,19 @@ def uploaded_logo_path(settings: Settings) -> Path | None:
 
 
 def resolve_logo_path(settings: Settings) -> Path | None:
-    """Logo a usar nos documentos: a enviada pela usuária ou a oficial do app."""
-    p = uploaded_logo_path(settings)
-    if p:
-        return p
-    return OFFICIAL_LOGO if OFFICIAL_LOGO.exists() else None
+    """Logo dos documentos: sempre a oficial do app (desde a 1.4.4 não há mais
+    envio de logo; uma logo enviada antes é ignorada). Sem o arquivo oficial,
+    cai na enviada, se houver."""
+    if OFFICIAL_LOGO.exists():
+        return OFFICIAL_LOGO
+    return uploaded_logo_path(settings)
 
 
 def logo_has_info(settings: Settings) -> bool:
     """A logo em uso já contém nome/título/CRP? (a oficial sempre contém)."""
-    if uploaded_logo_path(settings):
-        return bool(settings.logo_includes_info)
-    return OFFICIAL_LOGO.exists()
+    if OFFICIAL_LOGO.exists():
+        return True
+    return bool(uploaded_logo_path(settings) and settings.logo_includes_info)
 
 
 def _remove_old_logo(settings: Settings) -> None:

@@ -548,7 +548,7 @@ async function secDocumentos(content, id) {
       h("span", { class: "avatar sm" }, "📄"),
       h("div", { class: "li-main" }, [h("div", { class: "li-title" }, d.filename), h("div", { class: "li-sub" }, `${fmtDataHora(d.created_at)}  ·  ${(d.size / 1024).toFixed(0)} KB`)]),
       h("div", { class: "li-actions" }, [
-        h("button", { class: "btn-outline btn-sm", onClick: () => baixar(api.docUrl(d.id), d.filename) }, "Baixar"),
+        h("button", { class: "btn-outline btn-sm", onClick: async () => { try { const path = await baixar(api.docUrl(d.id), d.filename); toast("Arquivo salvo na pasta Downloads" + (path ? ": " + path.split(/[\\/]/).pop() : "."), "ok"); } catch (e) { toast(e.message, "err"); } } }, "Baixar"),
         h("button", { class: "btn-ghost btn-sm", onClick: async () => { if (await confirmar({ title: "Excluir documento", message: "Excluir este arquivo?", okLabel: "Excluir", danger: true })) { await api.deleteDocument(d.id); secDocumentos(clearReturn(content), id); } } }, "🗑"),
       ]),
     ]));

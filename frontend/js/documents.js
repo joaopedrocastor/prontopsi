@@ -2,24 +2,25 @@
 // Abre um modal para confirmar/completar os dados e baixa o PDF gerado.
 
 import { api } from "./api.js";
-import { h, clear, modal, toast, fmtData } from "./util.js";
+import { h, clear, modal, toast, fmtData, maskCpf, formatCpf, maskMoney, moneyValue, formatMoney } from "./util.js";
+import { salvarArquivo, nomeDoArquivo } from "./store.js";
 
 function hojeISO() { const d = new Date(); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; }
 function getCidade() { try { return localStorage.getItem("docCidade") || ""; } catch { return ""; } }
 function setCidade(v) { try { localStorage.setItem("docCidade", v || ""); } catch {} }
 
-// Baixa o PDF a partir da Response (blob) com o nome do cabeçalho.
+// Salva o PDF da Response na pasta Downloads e avisa onde ficou.
 export async function baixarPdf(res, fallbackName) {
-  const blob = await res.blob();
-  let name = fallbackName;
-  const cd = res.headers.get("content-disposition") || "";
-  const m = cd.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
-  if (m) { try { name = decodeURIComponent(m[1]); } catch { name = m[1]; } }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  const name = nomeDoArquivo(res, fallbackName);
+  const path = await salvarArquivo(await res.blob(), name);
+  avisarSalvo(path, name);
+  return path;
+}
+
+// Aviso padrão após salvar um arquivo.
+export function avisarSalvo(path, name) {
+  const arquivo = path ? path.split(/[\\/]/).pop() : name;
+  toast(`PDF salvo na pasta Downloads: ${arquivo}`, "ok");
 }
 
 const field = (label, control) => h("div", { class: "field" }, [h("label", {}, label), control]);
@@ -40,8 +41,8 @@ function tratamentoDe(kinship) {
 export async function baixarRecibo(receipt) {
   try {
     const res = await api.receiptPdf(receipt.id);
-    await baixarPdf(res, `Recibo_${String(receipt.number).padStart(3, "0")}.pdf`);
-  } catch (e) { toast(e.message || "Falha ao gerar o PDF.", "err"); }
+    return await baixarPdf(res, `Recibo_${String(receipt.number).padStart(3, "0")}.pdf`);
+  } catch (e) { toast(e.message || "Falha ao gerar o PDF.", "err"); return false; }
 }
 
 // Recibo de prestação de serviços.
@@ -72,7 +73,7 @@ export async function gerarRecibo(opts = {}) {
     h("option", { value: "Sr." }, "Sr."), h("option", { value: "Sra." }, "Sra."), h("option", { value: "" }, "—"),
   ]);
   const payerI = h("input", { type: "text", placeholder: "Nome de quem pagou" });
-  const cpfI = h("input", { type: "text", placeholder: "000.000.000-00" });
+  const cpfI = maskCpf(h("input", { type: "text", placeholder: "000.000.000-00" }));
   const quemSel = h("select", {});
   let guardians = [];
   let patient = null;
@@ -81,7 +82,7 @@ export async function gerarRecibo(opts = {}) {
     const v = quemSel.value;
     if (v.startsWith("g")) {
       const g = guardians[+v.slice(1)];
-      payerI.value = g.name || ""; cpfI.value = g.cpf || ""; titleSel.value = tratamentoDe(g.kinship);
+      payerI.value = g.name || ""; cpfI.value = formatCpf(g.cpf); titleSel.value = tratamentoDe(g.kinship);
     } else if (v === "p" && patient) {
       payerI.value = patient.name || ""; cpfI.value = "";
       titleSel.value = patient.sex === "F" ? "Sra." : patient.sex === "M" ? "Sr." : "";
@@ -112,13 +113,16 @@ export async function gerarRecibo(opts = {}) {
   }
   patSel.addEventListener("change", () => carregarPaciente(true));
 
-  const amountI = h("input", { type: "number", step: "0.01", min: "0", placeholder: "0,00" });
+  const amountI = maskMoney(h("input", {}));
   const servI = h("input", { type: "text", value: (rec && rec.service) || getServico() || SERVICO_PADRAO });
 
   // Dias das sessões (uma pessoa pode pagar várias sessões de uma vez).
   const origem = rec ? rec.session_dates : (opts.dates || []);
   const datas = [...new Set(origem.filter(Boolean).map((d) => d.slice(0, 10)))].sort();
-  const qtdI = h("input", { type: "number", min: "1", step: "1", value: (rec && rec.sessions) || datas.length || 1 });
+  // Quantidade travada: é sempre o número de dias informados.
+  const qtdI = h("input", { type: "text", readonly: "readonly", tabindex: "-1", title: "Calculada pelos dias das sessões",
+    style: "background:var(--bg, #f6f1ec);cursor:not-allowed;font-weight:600" });
+  const atualizarQtd = () => { qtdI.value = datas.length ? String(datas.length) : "—"; };
   const chips = h("div", { style: "display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px" });
   const novaI = h("input", { type: "date", style: "width:auto" });
   function desenharDatas() {
@@ -126,13 +130,14 @@ export async function gerarRecibo(opts = {}) {
     if (!datas.length) chips.appendChild(h("span", { class: "muted", style: "font-size:13px" }, "Nenhum dia informado."));
     datas.forEach((d, i) => chips.appendChild(h("span", { class: "badge badge-cat", style: "display:inline-flex;gap:6px;align-items:center" }, [
       fmtData(d),
-      h("button", { class: "icon-btn", title: "Remover", style: "padding:0 2px", onClick: () => { datas.splice(i, 1); qtdI.value = datas.length || 1; desenharDatas(); } }, "×"),
+      h("button", { class: "icon-btn", title: "Remover", style: "padding:0 2px", onClick: () => { datas.splice(i, 1); desenharDatas(); } }, "×"),
     ])));
+    atualizarQtd();
   }
   desenharDatas();
   const addBtn = h("button", { class: "btn-ghost btn-sm", onClick: () => {
     if (!novaI.value || datas.includes(novaI.value)) return;
-    datas.push(novaI.value); datas.sort(); qtdI.value = datas.length; novaI.value = ""; desenharDatas();
+    datas.push(novaI.value); datas.sort(); novaI.value = ""; desenharDatas();
   } }, "＋ Adicionar dia");
 
   // Cidade -> endereço do rodapé.
@@ -143,11 +148,11 @@ export async function gerarRecibo(opts = {}) {
 
   // Valores iniciais.
   if (rec) {
-    amountI.value = rec.amount; payerI.value = rec.payer; cpfI.value = rec.payer_cpf;
+    amountI.value = formatMoney(rec.amount); payerI.value = rec.payer; cpfI.value = formatCpf(rec.payer_cpf);
     titleSel.value = rec.payer_title || "";
     await carregarPaciente(false);
   } else {
-    if (opts.amount != null) amountI.value = opts.amount;
+    if (opts.amount != null && opts.amount !== "") amountI.value = formatMoney(opts.amount);
     await carregarPaciente(true);
   }
 
@@ -175,7 +180,7 @@ export async function gerarRecibo(opts = {}) {
     actions: [
       { label: "Cancelar", class: "btn-ghost" },
       { label: rec ? "Salvar e gerar PDF" : "Gerar PDF", class: "btn", onClick: async (close) => {
-        const amount = parseFloat(amountI.value) || 0;
+        const amount = moneyValue(amountI);
         if (!amount) { toast("Informe o valor.", "err"); return; }
         if (!payerI.value.trim()) { toast("Informe quem pagou.", "err"); return; }
         const city = (cityCtl.value || "").trim();
@@ -185,15 +190,15 @@ export async function gerarRecibo(opts = {}) {
           patient_id: patSel.value || null, patient_name: p ? p.name : "",
           issued_on: whenI.value || hojeISO(),
           payer: payerI.value.trim(), payer_cpf: cpfI.value.trim(), payer_title: titleSel.value,
-          amount, sessions: parseInt(qtdI.value, 10) || null, session_dates: datas,
+          amount, sessions: datas.length || null, session_dates: datas,
           service: servI.value.trim(), city,
         };
         try {
           const salvo = rec ? await api.updateReceipt(rec.id, dados) : await api.createReceipt(dados);
-          await baixarRecibo(salvo);
           close();
-          toast(`Recibo nº ${String(salvo.number).padStart(3, "0")} ${rec ? "atualizado" : "gerado e salvo"}.`, "ok");
           if (opts.onSaved) opts.onSaved(salvo);
+          const ok = await baixarRecibo(salvo);
+          if (ok !== false) toast(`Recibo nº ${String(salvo.number).padStart(3, "0")} ${rec ? "atualizado" : "gerado"} e salvo na pasta Downloads.`, "ok");
         } catch (e) { toast(e.message || "Falha ao gerar.", "err"); }
       } },
     ],
@@ -225,7 +230,7 @@ export function gerarDeclaracao(opts = {}) {
             patient_id: opts.patient_id, when: dateI.value, start: startI.value,
             end: endI.value, city: cityI.value.trim(), extra: extraI.value.trim(),
           });
-          await baixarPdf(res, "Declaracao.pdf"); close(); toast("Declaração gerada.", "ok");
+          await baixarPdf(res, "Declaracao.pdf"); close();
         } catch (e) { toast(e.message || "Falha ao gerar.", "err"); }
       } },
     ],

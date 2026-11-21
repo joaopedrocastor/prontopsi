@@ -1,11 +1,11 @@
-// Tela de Configuracoes: identidade visual (logo, nome, CRP) e senha opcional.
+// Tela de Configuracoes: identidade (nome, CRP), recibo e senha opcional.
 
 import { api } from "../api.js";
 import { store, loadSettings } from "../store.js";
 import { refreshHeader } from "../app.js";
-import { h, toast, confirmar } from "../util.js";
+import { h, toast, confirmar, maskCpf } from "../util.js";
 
-// Tela de Configuração: identidade (logo/nome/CRP), senha, recuperação e Google.
+// Tela de Configuração: identidade (nome/CRP), recibo, senha, recuperação e Google.
 export async function renderSettings(container) {
   // Sempre recarrega: o nº do próximo recibo muda a cada recibo gerado.
   const s = await loadSettings().catch(() => store.settings || {});
@@ -18,63 +18,17 @@ export async function renderSettings(container) {
   container.appendChild(h("h1", { style: "color:var(--navy);margin:0 0 18px" }, "Configurações"));
 
   // ---- Identidade ----
-  // Sem logo enviada, os documentos usam a logo oficial embutida no app.
-  const OFICIAL = "assets/logo-oficial.png";
-  const logoImg = h("img", {
-    class: "logo-preview",
-    src: s.logo_path ? "/api/settings/logo/image?t=" + Date.now() : OFICIAL,
-  });
-  const logoHint = h("div", { class: "muted" }, s.logo_path ? "Logo enviada (usada nos documentos)" : "Logo oficial (padrão do app)");
-
-  const fileInput = h("input", { type: "file", accept: ".png,.jpg,.jpeg,.webp", class: "hidden" });
-  fileInput.addEventListener("change", async () => {
-    const f = fileInput.files[0];
-    if (!f) return;
-    try {
-      const upd = await api.uploadLogo(f);
-      store.settings = upd; refreshHeader();
-      logoImg.src = "/api/settings/logo/image?t=" + Date.now();
-      logoHint.textContent = "Logo enviada (usada nos documentos)";
-      toast("Logo atualizada.", "ok");
-    } catch (e) { toast(e.message, "err"); }
-  });
-
-  const drop = h("div", { class: "logo-drop", onClick: () => fileInput.click() }, [
-    logoImg,
-    h("div", {}, "📷 Clique para enviar outra logo (PNG ou JPG)"),
-    logoHint,
-  ]);
-
+  // A logo é sempre a oficial (embutida no app) — não há mais envio de logo.
   const nameI = h("input", { type: "text", value: s.professional_name || "", placeholder: "Ex.: Thamires Benedito" });
   const titleI = h("input", { type: "text", value: s.professional_title || "Psicóloga", placeholder: "Psicóloga" });
   const crpI = h("input", { type: "text", value: s.crp || "", placeholder: "Ex.: CRP 04/83658" });
-  const includesI = h("input", { type: "checkbox" });
-  if (s.logo_includes_info) includesI.checked = true;
 
   const identCard = h("div", { class: "card" }, [
-    h("div", { class: "field" }, [h("label", {}, "Logo"), drop, fileInput,
-      s.logo_path ? h("button", {
-        class: "btn-ghost btn-sm", style: "margin-top:8px",
-        onClick: async () => {
-          if (!(await confirmar({ title: "Usar a logo oficial", message: "Remover a logo enviada e voltar a usar a logo oficial do app nos documentos?" }))) return;
-          const upd = await api.removeLogo();
-          store.settings = upd; refreshHeader();
-          logoImg.src = OFICIAL; logoHint.textContent = "Logo oficial (padrão do app)";
-          toast("Usando a logo oficial.", "ok");
-        },
-      }, "Usar a logo oficial") : null,
-    ]),
     h("div", { class: "form-row w-2" }, [
       h("div", { class: "field" }, [h("label", {}, "Nome profissional"), nameI]),
       h("div", { class: "field" }, [h("label", {}, "Título"), titleI]),
     ]),
     h("div", { class: "field" }, [h("label", {}, "CRP"), crpI]),
-    h("div", { class: "field" }, [
-      h("label", { class: "choice", style: "font-size:14px" }, [
-        includesI, "Minha logo já inclui meu nome, título e CRP",
-      ]),
-      h("div", { class: "hint" }, "Marque se a imagem enviada já traz o texto (nome/CRP). O app mostra a logo maior e não repete o texto ao lado."),
-    ]),
     h("div", { class: "form-actions" }, [
       h("button", {
         class: "btn",
@@ -84,7 +38,7 @@ export async function renderSettings(container) {
               professional_name: nameI.value.trim(),
               professional_title: titleI.value.trim() || "Psicóloga",
               crp: crpI.value.trim(),
-              logo_includes_info: includesI.checked,
+              logo_includes_info: true,
             });
             store.settings = { ...store.settings, ...upd };
             refreshHeader();
@@ -193,7 +147,7 @@ export async function renderSettings(container) {
 // Card "Dados do recibo": usados no texto e no rodapé do recibo em PDF.
 function reciboCard(s) {
   const legalI = h("input", { type: "text", value: s.legal_name || "", placeholder: "Ex.: Thamires Cristina Benedito Ferreira" });
-  const cpfI = h("input", { type: "text", value: s.cpf || "", placeholder: "000.000.000-00" });
+  const cpfI = maskCpf(h("input", { type: "text", value: s.cpf || "", placeholder: "000.000.000-00" }));
   const nextI = h("input", { type: "number", min: "1", step: "1", value: s.receipt_next || 1 });
   const nextHint = h("div", { class: "hint" }, "Use para continuar a numeração dos recibos feitos antes do app (ex.: 8). Depois do primeiro recibo, a numeração é automática.");
   api.nextReceiptNumber().then((r) => {

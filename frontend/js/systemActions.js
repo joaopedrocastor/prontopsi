@@ -45,7 +45,7 @@ export async function exportarDados(format = "zip") {
       toast("Dados exportados: " + r.path, "ok");
     } catch (e) { toast(e.message, "err"); }
   } else if (!hasBridge()) {
-    baixar(`/api/system/export?format=${format}`, nome);
+    try { await baixar(`/api/system/export?format=${format}`, nome); } catch (e) { toast(e.message, "err"); }
   }
 }
 
